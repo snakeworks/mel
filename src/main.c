@@ -88,14 +88,12 @@ const char *token_to_str(Token token) {
   return "Unknown token";
 }
 
-bool next_match(const char *source, u32 *current, char symbol) {
-  (*current)++;
-
-  if (source[*current] == '\0') {
+bool peek(const char *source, u32 current, char symbol) {
+  if (source[current] == '\0') {
     return false;
   }
 
-  if (source[*current] == symbol) {
+  if (source[current] == symbol) {
     return true;
   }
 
@@ -130,7 +128,7 @@ void tokenize(TokenArray *array, const char *source) {
     case '-': add_token(array, TOK_MINUS, "-", line); break;
     case '*': add_token(array, TOK_STAR, "*", line); break;
     case '/': {
-      if (next_match(source, &current, '/')) {
+      if (peek(source, current, '/')) {
         seek(source, &current, '\n');
         line++;
       } else {
@@ -139,7 +137,8 @@ void tokenize(TokenArray *array, const char *source) {
       break;
     }
     case '!': {
-      bool matches = next_match(source, &current, '=');
+      bool matches = peek(source, current, '=');
+      if (matches) current++;
       add_token(array, matches ? TOK_BANG_EQUAL : TOK_BANG, matches ? "!=" : "!", line);
       break;
     }
@@ -166,7 +165,11 @@ void print_token_array(TokenArray *array) {
 
 i32 main(void) {
   TokenArray tokens;
-  const char *sample_source = "() {} +\n//hellworld\n() {{";
+
+  const char *sample_source =
+    "// this is a comment\n"
+    "(( )){} // grouping stuff\n"
+    "!*+-/=<> <= == // operators\n";
 
   tokenize(&tokens, sample_source);
 
