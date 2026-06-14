@@ -1,5 +1,6 @@
 #include "base.h"
 #include <stdio.h>
+#include <ctype.h>
 
 typedef enum {
   TOK_LEFT_PAREN,
@@ -24,6 +25,8 @@ typedef enum {
 
   TOK_IDENTIFIER,
   TOK_STRING,
+  TOK_INTEGER,
+  TOK_FLOAT,
 
   TOK_AND,
   TOK_OR,
@@ -73,6 +76,8 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_LESS_EQUAL);
     CASE_STRING(TOK_IDENTIFIER);
     CASE_STRING(TOK_STRING);
+    CASE_STRING(TOK_INTEGER);
+    CASE_STRING(TOK_FLOAT);
     CASE_STRING(TOK_AND);
     CASE_STRING(TOK_OR);
     CASE_STRING(TOK_IF);
@@ -88,18 +93,9 @@ const char *token_to_str(Token token) {
   return "Unknown token";
 }
 
-bool peek(const char *source, u32 current, char symbol) {
+char peek(const char *source, u32 current) {
   current++;
-
-  if (source[current] == '\0') {
-    return false;
-  }
-
-  if (source[current] == symbol) {
-    return true;
-  }
-
-  return false;
+  return source[current];
 }
 
 void add_token(TokenArray *array, TokenKind kind, const char *lexeme_start, u32 lexeme_length, u32 line) {
@@ -132,7 +128,7 @@ void tokenize(TokenArray *array, const char *source) {
     case '-': add_token(array, TOK_MINUS, &source[current], 1, line); break;
     case '*': add_token(array, TOK_STAR, &source[current], 1, line); break;
     case '/': {
-      if (peek(source, current, '/')) {
+      if (peek(source, current) == '/') {
         seek(source, &current, '\n');
         line++;
       } else {
@@ -141,25 +137,25 @@ void tokenize(TokenArray *array, const char *source) {
       break;
     }
     case '=': {
-      bool matches = peek(source, current, '=');
+      bool matches = peek(source, current) == '=';
       add_token(array, matches ? TOK_DOUBLE_EQUAL : TOK_EQUAL, &source[current], matches ? 2 : 1, line);
       if (matches) current++;
       break;
     }
     case '>': {
-      bool matches = peek(source, current, '=');
+      bool matches = peek(source, current) == '=';
       add_token(array, matches ? TOK_GREATER_EQUAL : TOK_GREATER, &source[current], matches ? 2 : 1, line);
       if (matches) current++;
       break;
     }
     case '<': {
-      bool matches = peek(source, current, '=');
+      bool matches = peek(source, current) == '=';
       add_token(array, matches ? TOK_LESS_EQUAL : TOK_LESS, &source[current], matches ? 2 : 1, line);
       if (matches) current++;
       break;
     }
     case '!': {
-      bool matches = peek(source, current, '=');
+      bool matches = peek(source, current) == '=';
       add_token(array, matches ? TOK_BANG_EQUAL : TOK_BANG, &source[current], matches ? 2 : 1, line);
       if (matches) current++;
       break;
@@ -176,6 +172,25 @@ void tokenize(TokenArray *array, const char *source) {
     case '\t':
       break;
     case '\n': line++; break;
+    default: {
+      if (isdigit(source[current])) {
+        u32 start = current;
+
+        while (isdigit(source[current])) current++;
+
+        if (source[current] == '.' && isdigit(peek(source, current))) {
+          current++;
+          while (isdigit(source[current])) current++;
+          u32 length = current - start;
+          add_token(array, TOK_FLOAT, &source[start], length, line);
+        } else {
+          u32 length = current - start;
+          add_token(array, TOK_INTEGER, &source[start], length, line);
+        }
+
+        break;
+      }
+    }
     }
 
     current++;
@@ -195,7 +210,8 @@ i32 main(void) {
     "// this is a comment\n"
     "(( )){} // grouping stuff\n"
     "!*+-/=<> <= >= != == // operators\n"
-    "\"this is my string\"";
+    "\"this is my string\"\n"
+    "42 52.0124 19834009";
 
   tokenize(&tokens, sample_source);
 
