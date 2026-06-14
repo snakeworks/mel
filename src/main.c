@@ -1,6 +1,7 @@
 #include "base.h"
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 
 typedef enum {
   TOK_LEFT_PAREN,
@@ -31,9 +32,9 @@ typedef enum {
   TOK_AND,
   TOK_OR,
   TOK_IF,
+  TOK_ELSE,
   TOK_TRUE,
   TOK_FALSE,
-  TOK_ELSE,
   TOK_FUNC,
   TOK_FOR,
   TOK_NULL,
@@ -81,9 +82,9 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_AND);
     CASE_STRING(TOK_OR);
     CASE_STRING(TOK_IF);
+    CASE_STRING(TOK_ELSE);
     CASE_STRING(TOK_TRUE);
     CASE_STRING(TOK_FALSE);
-    CASE_STRING(TOK_ELSE);
     CASE_STRING(TOK_FUNC);
     CASE_STRING(TOK_FOR);
     CASE_STRING(TOK_NULL);
@@ -108,6 +109,20 @@ void seek(const char *source, u32 *current, char symbol) {
   while (source[*current] != symbol && source[*current] != '\0') {
     (*current)++;
   }
+}
+
+TokenKind str_to_identifier_kind(const char *start, u32 length) {
+  if (strncmp(start, "and", length) == 0) return TOK_AND;
+  else if (strncmp(start, "or", length) == 0) return TOK_OR;
+  else if (strncmp(start, "if", length) == 0) return TOK_IF;
+  else if (strncmp(start, "else", length) == 0) return TOK_ELSE;
+  else if (strncmp(start, "true", length) == 0) return TOK_TRUE;
+  else if (strncmp(start, "false", length) == 0) return TOK_FALSE;
+  else if (strncmp(start, "func", length) == 0) return TOK_FUNC;
+  else if (strncmp(start, "for", length) == 0) return TOK_FOR;
+  else if (strncmp(start, "null", length) == 0) return TOK_NULL;
+  else if (strncmp(start, "return", length) == 0) return TOK_RETURN;
+  return TOK_IDENTIFIER;
 }
 
 void tokenize(TokenArray *array, const char *source) {
@@ -189,6 +204,12 @@ void tokenize(TokenArray *array, const char *source) {
         }
 
         break;
+      } else if (isalpha(source[current])) {
+        u32 start = current;
+        while (isalpha(source[current])) current++;
+        u32 length = current - start;
+        TokenKind kind = str_to_identifier_kind(&source[start], length);
+        add_token(array, kind, &source[start], length, line);
       }
     }
     }
@@ -211,7 +232,8 @@ i32 main(void) {
     "(( )){} // grouping stuff\n"
     "!*+-/=<> <= >= != == // operators\n"
     "\"this is my string\"\n"
-    "42 52.0124 19834009";
+    "42 52.0124 19834009\n"
+    "for if testingg null\n";
 
   tokenize(&tokens, sample_source);
 
