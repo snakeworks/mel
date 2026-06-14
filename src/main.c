@@ -164,6 +164,13 @@ void tokenize(TokenArray *array, const char *source) {
       if (matches) current++;
       break;
     }
+    case '"': {
+      current++;
+      u32 start = current;
+      seek(source, &current, '"');
+      u32 length = current - start;
+      add_token(array, TOK_STRING, &source[start], length, line);
+    }
     case ' ':
     case '\r':
     case '\t':
@@ -187,7 +194,8 @@ i32 main(void) {
   const char *sample_source =
     "// this is a comment\n"
     "(( )){} // grouping stuff\n"
-    "!*+-/=<> <= >= != == // operators\n";
+    "!*+-/=<> <= >= != == // operators\n"
+    "\"this is my string\"";
 
   tokenize(&tokens, sample_source);
 
