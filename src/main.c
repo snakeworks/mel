@@ -41,7 +41,7 @@ typedef enum {
 
 typedef struct {
   TokenKind kind;
-  const char *lexeme;
+  StringView lexeme;
   u32 line;
 } Token;
 
@@ -89,6 +89,8 @@ const char *token_to_str(Token token) {
 }
 
 bool peek(const char *source, u32 current, char symbol) {
+  current++;
+
   if (source[current] == '\0') {
     return false;
   }
@@ -100,8 +102,9 @@ bool peek(const char *source, u32 current, char symbol) {
   return false;
 }
 
-void add_token(TokenArray *array, TokenKind kind, const char *lexeme, u32 line) {
-  Token t = {.kind = kind, .lexeme = lexeme, .line = line};
+void add_token(TokenArray *array, TokenKind kind, const char *lexeme_start, u32 lexeme_length, u32 line) {
+  StringView s = {.start = lexeme_start, .length = lexeme_length};
+  Token t = {.kind = kind, .lexeme = s, .line = line};
   da_append(array, t);
 }
 
@@ -116,40 +119,56 @@ void tokenize(TokenArray *array, const char *source) {
 
   u32 current = 0;
   u32 line = 0;
+
   while (source[current] != '\0') {
     switch (source[current]) {
-    case '(': add_token(array, TOK_LEFT_PAREN, "(", line); break;
-    case ')': add_token(array, TOK_RIGHT_PAREN, ")", line); break;
-    case '{': add_token(array, TOK_LEFT_BRACE, "{", line); break;
-    case '}': add_token(array, TOK_RIGHT_BRACE, "}", line); break;
-    case ',': add_token(array, TOK_COMMA, ",", line); break;
-    case '.': add_token(array, TOK_DOT, ".", line); break;
-    case '+': add_token(array, TOK_PLUS, "+", line); break;
-    case '-': add_token(array, TOK_MINUS, "-", line); break;
-    case '*': add_token(array, TOK_STAR, "*", line); break;
+    case '(': add_token(array, TOK_LEFT_PAREN, &source[current], 1, line); break;
+    case ')': add_token(array, TOK_RIGHT_PAREN, &source[current], 1, line); break;
+    case '{': add_token(array, TOK_LEFT_BRACE, &source[current], 1, line); break;
+    case '}': add_token(array, TOK_RIGHT_BRACE, &source[current], 1, line); break;
+    case ',': add_token(array, TOK_COMMA, &source[current], 1, line); break;
+    case '.': add_token(array, TOK_DOT, &source[current], 1, line); break;
+    case '+': add_token(array, TOK_PLUS, &source[current], 1, line); break;
+    case '-': add_token(array, TOK_MINUS, &source[current], 1, line); break;
+    case '*': add_token(array, TOK_STAR, &source[current], 1, line); break;
     case '/': {
       if (peek(source, current, '/')) {
         seek(source, &current, '\n');
         line++;
       } else {
-        add_token(array, TOK_SLASH, "/", line);
+        add_token(array, TOK_SLASH, &source[current], 1, line);
       }
+      break;
+    }
+    case '=': {
+      bool matches = peek(source, current, '=');
+      add_token(array, matches ? TOK_DOUBLE_EQUAL : TOK_EQUAL, &source[current], matches ? 2 : 1, line);
+      if (matches) current++;
+      break;
+    }
+    case '>': {
+      bool matches = peek(source, current, '=');
+      add_token(array, matches ? TOK_GREATER_EQUAL : TOK_GREATER, &source[current], matches ? 2 : 1, line);
+      if (matches) current++;
+      break;
+    }
+    case '<': {
+      bool matches = peek(source, current, '=');
+      add_token(array, matches ? TOK_LESS_EQUAL : TOK_LESS, &source[current], matches ? 2 : 1, line);
+      if (matches) current++;
       break;
     }
     case '!': {
       bool matches = peek(source, current, '=');
+      add_token(array, matches ? TOK_BANG_EQUAL : TOK_BANG, &source[current], matches ? 2 : 1, line);
       if (matches) current++;
-      add_token(array, matches ? TOK_BANG_EQUAL : TOK_BANG, matches ? "!=" : "!", line);
       break;
     }
     case ' ':
     case '\r':
     case '\t':
       break;
-    case '\n': {
-      line++;
-      break;
-    }
+    case '\n': line++; break;
     }
 
     current++;
@@ -158,8 +177,7 @@ void tokenize(TokenArray *array, const char *source) {
 
 void print_token_array(TokenArray *array) {
   for (u32 i = 0; i < array->size; i++) {
-    printf("%s %s (line %d)\n", token_to_str(array->items[i]),
-           array->items[i].lexeme, array->items[i].line);
+    printf("%s " SV_FMT " (line %d)\n", token_to_str(array->items[i]), SV_ARG(array->items[i].lexeme), array->items[i].line);
   }
 }
 
@@ -169,7 +187,7 @@ i32 main(void) {
   const char *sample_source =
     "// this is a comment\n"
     "(( )){} // grouping stuff\n"
-    "!*+-/=<> <= == // operators\n";
+    "!*+-/=<> <= >= != == // operators\n";
 
   tokenize(&tokens, sample_source);
 

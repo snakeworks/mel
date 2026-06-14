@@ -33,4 +33,12 @@
   case val:                                                                    \
     return #val
 
+typedef struct {
+  const char *start;
+  u32 length;
+} StringView;
+
+#define SV_FMT "%.*s"
+#define SV_ARG(sv) (int) (sv).length, (sv).start
+
 #endif
