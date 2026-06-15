@@ -164,6 +164,8 @@ void tokenize(TokenArray *array, const char *source) {
 
     current++;
   }
+
+  add_token(array, TOK_EOF, &source[current], 1, line);
 }
 
 void print_token_array(TokenArray *array) {
