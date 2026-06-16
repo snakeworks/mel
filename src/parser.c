@@ -53,13 +53,6 @@ Expr *make_binary(Expr *left, TokenKind op, Expr *right) {
   return e;
 }
 
-Expr *make_group(Expr *inner) {
-  Expr *e = malloc(sizeof(Expr));
-  e->kind = EXPR_GROUP;
-  e->as.group.inner = inner;
-  return e;
-}
-
 Value make_value_number(f64 value) {
   Value v;
   v.kind = VAL_NUMBER;
@@ -132,7 +125,7 @@ Expr *parse_atom(ParseContext *context) {
   // TODO: Allocate to arena, otherwise this will leak
   if (peek(context).kind == TOK_NUMBER) {
     u32 length = peek(context).lexeme.length;
-    char *c = malloc(sizeof(char) * length);
+    char *c = malloc(sizeof(char) * length + 1);
     strncpy(c, peek(context).lexeme.start, length);
     advance(context);
     return make_expr_number(atof(c));
@@ -148,6 +141,7 @@ Expr *parse_atom(ParseContext *context) {
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
     Expr *inner = expr_parse(context);
+    advance(context);
     return inner;
   }
   return NULL;
@@ -209,8 +203,13 @@ Value expr_eval(Expr *expr) {
   switch (expr->kind) {
   case EXPR_VALUE:
     return expr->as.value;
-  case EXPR_UNARY:
-    return expr_eval(expr->as.unary.right);
+  case EXPR_UNARY: {
+    Value v = expr_eval(expr->as.unary.right);
+    if (expr->as.unary.op == TOK_MINUS) {
+      return make_value_number(-v.as.number);
+    }
+    return v;
+  }
   case EXPR_BINARY: {
     Value l = expr_eval(expr->as.binary.left);
     Value r = expr_eval(expr->as.binary.right);
@@ -229,7 +228,7 @@ Value expr_eval(Expr *expr) {
       case TOK_BANG_EQUAL: return make_value_boolean(l.as.number != r.as.number);
       case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
       case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
-      default: make_value_number(0.0);
+      default: return make_value_number(0.0);
       }
     }
     case VAL_BOOLEAN:
@@ -240,7 +239,7 @@ Value expr_eval(Expr *expr) {
       case TOK_BANG_EQUAL: return make_value_boolean(l.as.boolean != r.as.boolean);
       case TOK_GREATER: return make_value_boolean(l.as.boolean > r.as.boolean);
       case TOK_GREATER_EQUAL: return make_value_boolean(l.as.boolean >= r.as.boolean);
-      default: make_value_boolean(false);
+      default: return make_value_boolean(false);
       }
       break;
     case VAL_NULL:

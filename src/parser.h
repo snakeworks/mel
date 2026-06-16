@@ -24,7 +24,6 @@ typedef enum {
   EXPR_VALUE,
   EXPR_UNARY,
   EXPR_BINARY,
-  EXPR_GROUP,
 } ExprKind;
 
 typedef struct Expr Expr;

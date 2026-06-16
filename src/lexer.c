@@ -146,6 +146,7 @@ void tokenize(TokenArray *array, const char *source) {
         }
 
         u32 length = current - start;
+        current--; // So we don't increase current twice loop
         add_token(array, TOK_NUMBER, &source[start], length, line);
 
         break;
@@ -153,6 +154,7 @@ void tokenize(TokenArray *array, const char *source) {
         u32 start = current;
         while (isalpha(source[current])) current++;
         u32 length = current - start;
+        current--;
         TokenKind kind = str_to_identifier_kind(&source[start], length);
         add_token(array, kind, &source[start], length, line);
       }
