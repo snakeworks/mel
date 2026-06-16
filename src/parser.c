@@ -127,6 +127,7 @@ Expr *parse_atom(ParseContext *context) {
     u32 length = peek(context).lexeme.length;
     char *c = malloc(sizeof(char) * length + 1);
     strncpy(c, peek(context).lexeme.start, length);
+    c[length] = '\0';
     advance(context);
     return make_expr_number(atof(c));
   }
