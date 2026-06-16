@@ -98,6 +98,7 @@ Expr *primary(ParseContext *context) {
     return make_number(atof(c));
   }
   if (peek(context).kind == TOK_LEFT_PAREN) {
+    advance(context);
     Expr *inner = expression(context);
     return inner;
   }

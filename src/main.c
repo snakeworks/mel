@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 i32 main(void) {
-  const char *sample_source = "2 * 10 / 2";
+  const char *sample_source = "1 * (2 - 1)";
 
   TokenArray tokens;
   tokenize(&tokens, sample_source);
