@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-Expr *expression(ParseContext *context);
-Expr *term(ParseContext *context);
-Expr *factor(ParseContext *context);
-Expr *unary(ParseContext *context);
-Expr *primary(ParseContext *context);
+Expr *expr_parse(ParseContext *context);
+Expr *parse_add_sub(ParseContext *context);
+Expr *parse_mul_div(ParseContext *context);
+Expr *parse_unary(ParseContext *context);
+Expr *parse_atom(ParseContext *context);
 
 static Token peek(ParseContext *context) {
   return context->tokens->items[context->current];
@@ -48,47 +48,43 @@ Expr *make_group(Expr *inner) {
   return e;
 }
 
-Expr *parser_start(ParseContext *context) {
-  return expression(context);
+Expr *expr_parse(ParseContext *context) {
+  return parse_add_sub(context);
 }
 
-Expr *expression(ParseContext *context) {
-  return term(context);
-}
-
-Expr *term(ParseContext *context) {
-  Expr *left = factor(context);
+Expr *parse_add_sub(ParseContext *context) {
+  Expr *left = parse_mul_div(context);
   while (peek(context).kind == TOK_PLUS || peek(context).kind == TOK_MINUS) {
     TokenKind op = peek(context).kind;
     advance(context);
-    Expr *right = factor(context);
+    Expr *right = parse_mul_div(context);
     left = make_binary(left, op, right);
   }
   return left;
 }
 
-Expr *factor(ParseContext *context) {
-  Expr *left = unary(context);
+Expr *parse_mul_div(ParseContext *context) {
+  Expr *left = parse_unary(context);
   while (peek(context).kind == TOK_STAR || peek(context).kind == TOK_SLASH) {
     TokenKind op = peek(context).kind;
     advance(context);
-    Expr *right = unary(context);
+    Expr *right = parse_unary(context);
     left = make_binary(left, op, right);
   }
   return left;
 }
 
-Expr *unary(ParseContext *context) {
+Expr *parse_unary(ParseContext *context) {
   while (peek(context).kind == TOK_MINUS) {
     TokenKind op = peek(context).kind;
     advance(context);
-    Expr *right = unary(context);
+    Expr *right = parse_unary(context);
     return make_unary(op, right);
   }
-  return primary(context);
+  return parse_atom(context);
 }
 
-Expr *primary(ParseContext *context) {
+Expr *parse_atom(ParseContext *context) {
   // TODO: Allocate to arena, otherwise this will leak
   if (peek(context).kind == TOK_NUMBER) {
     u32 length = peek(context).lexeme.length;
@@ -99,7 +95,7 @@ Expr *primary(ParseContext *context) {
   }
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
-    Expr *inner = expression(context);
+    Expr *inner = expr_parse(context);
     return inner;
   }
   return NULL;

@@ -28,7 +28,7 @@ typedef struct {
   u32 current;
 } ParseContext;
 
-Expr *parser_start(ParseContext *context);
+Expr *expr_parse(ParseContext *context);
 void expr_print(Expr *expr);
 f64 expr_eval(Expr *expr);
 

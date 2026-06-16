@@ -10,7 +10,7 @@ i32 main(void) {
   tokenize(&tokens, sample_source);
   print_token_array(&tokens);
   ParseContext context = {.tokens = &tokens, .current = 0};
-  Expr *e = parser_start(&context);
+  Expr *e = expr_parse(&context);
   expr_print(e); printf("\n");
   f64 result = expr_eval(e);
   printf("Result: %g\n", result);
