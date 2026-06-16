@@ -6,7 +6,7 @@ all: build/main
 build:
 	mkdir -p build
 
-build/main: build/main.o build/lexer.o
+build/main: build/main.o build/lexer.o build/parser.o
 	$(CC) $(CFLAGS) $^ -o build/main
 
 build/main.o: src/main.c | build
@@ -14,6 +14,9 @@ build/main.o: src/main.c | build
 
 build/lexer.o: src/lexer.c src/lexer.h | build
 	$(CC) $(CFLAGS) -c src/lexer.c -o $@
+
+build/parser.o: src/parser.c src/parser.h | build
+	$(CC) $(CFLAGS) -c src/parser.c -o $@
 
 clean:
 	rm -rf ./build

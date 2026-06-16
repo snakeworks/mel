@@ -1,20 +1,18 @@
 #include "base.h"
 #include "lexer.h"
+#include "parser.h"
+#include <stdio.h>
 
 i32 main(void) {
+  const char *sample_source = "2 * 10 / 2";
+
   TokenArray tokens;
-
-  const char *sample_source =
-    "// this is a comment\n"
-    "(( )){} // grouping stuff\n"
-    "!*+-/=<> <= >= != == // operators\n"
-    "\"this is my string\"\n"
-    "42 52.0124 19834009\n"
-    "for if testingg null\n";
-
   tokenize(&tokens, sample_source);
-
-  print_token_array(&tokens);
+  ParseContext context = {.tokens = &tokens, .current = 0};
+  Expr *e = parser_start(&context);
+  //expr_print(e); printf("\n");
+  f64 result = expr_eval(e);
+  printf("Result: %g\n", result);
 
   return 0;
 }

@@ -25,8 +25,7 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_LESS_EQUAL);
     CASE_STRING(TOK_IDENTIFIER);
     CASE_STRING(TOK_STRING);
-    CASE_STRING(TOK_INTEGER);
-    CASE_STRING(TOK_FLOAT);
+    CASE_STRING(TOK_NUMBER);
     CASE_STRING(TOK_AND);
     CASE_STRING(TOK_OR);
     CASE_STRING(TOK_IF);
@@ -42,7 +41,7 @@ const char *token_to_str(Token token) {
   return "Unknown token";
 }
 
-char peek(const char *source, u32 current) {
+static char peek(const char *source, u32 current) {
   current++;
   return source[current];
 }
@@ -144,12 +143,10 @@ void tokenize(TokenArray *array, const char *source) {
         if (source[current] == '.' && isdigit(peek(source, current))) {
           current++;
           while (isdigit(source[current])) current++;
-          u32 length = current - start;
-          add_token(array, TOK_FLOAT, &source[start], length, line);
-        } else {
-          u32 length = current - start;
-          add_token(array, TOK_INTEGER, &source[start], length, line);
         }
+
+        u32 length = current - start;
+        add_token(array, TOK_NUMBER, &source[start], length, line);
 
         break;
       } else if (isalpha(source[current])) {
