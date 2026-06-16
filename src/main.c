@@ -4,13 +4,14 @@
 #include <stdio.h>
 
 i32 main(void) {
-  const char *sample_source = "1 * (2 - 1)";
+  const char *sample_source = "2 + 10 - 1\n";
 
   TokenArray tokens;
   tokenize(&tokens, sample_source);
+  print_token_array(&tokens);
   ParseContext context = {.tokens = &tokens, .current = 0};
   Expr *e = parser_start(&context);
-  //expr_print(e); printf("\n");
+  expr_print(e); printf("\n");
   f64 result = expr_eval(e);
   printf("Result: %g\n", result);
 

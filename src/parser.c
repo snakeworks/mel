@@ -62,7 +62,7 @@ Expr *term(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = factor(context);
-    return make_binary(left, op, right);
+    left = make_binary(left, op, right);
   }
   return left;
 }
@@ -73,7 +73,7 @@ Expr *factor(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = unary(context);
-    return make_binary(left, op, right);
+    left = make_binary(left, op, right);
   }
   return left;
 }
