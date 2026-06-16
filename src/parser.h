@@ -5,7 +5,23 @@
 #include "lexer.h"
 
 typedef enum {
-  EXPR_NUMBER,
+  VAL_NUMBER,
+  VAL_BOOLEAN,
+  VAL_NULL,
+} ValueKind;
+
+typedef struct {
+  ValueKind kind;
+  union {
+    f64 number;
+    bool boolean;
+  } as;
+} Value;
+
+static const Value NULL_VALUE = {.kind = VAL_NULL};
+
+typedef enum {
+  EXPR_VALUE,
   EXPR_UNARY,
   EXPR_BINARY,
   EXPR_GROUP,
@@ -16,7 +32,7 @@ typedef struct Expr Expr;
 struct Expr {
   ExprKind kind;
   union {
-    struct { f64 value; } number;
+    Value value;
     struct { TokenKind op; Expr *right; } unary;
     struct { Expr *left; TokenKind op; Expr *right; } binary;
     struct { Expr *inner; } group;
@@ -30,6 +46,7 @@ typedef struct {
 
 Expr *expr_parse(ParseContext *context);
 void expr_print(Expr *expr);
-f64 expr_eval(Expr *expr);
+Value expr_eval(Expr *expr);
+void value_print(Value value);
 
 #endif

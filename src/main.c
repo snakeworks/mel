@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 i32 main(void) {
-  const char *sample_source = "2 + 10 - 1\n";
+  const char *sample_source = "10 + 1 > 4 + 2";
 
   TokenArray tokens;
   tokenize(&tokens, sample_source);
@@ -12,8 +12,8 @@ i32 main(void) {
   ParseContext context = {.tokens = &tokens, .current = 0};
   Expr *e = expr_parse(&context);
   expr_print(e); printf("\n");
-  f64 result = expr_eval(e);
-  printf("Result: %g\n", result);
+  Value result = expr_eval(e);
+  printf("Result: "); value_print(result); printf("\n");
 
   return 0;
 }
