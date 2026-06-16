@@ -246,9 +246,10 @@ Value expr_eval(Expr *expr) {
       // TODO: Implement
       break;
     }
-
+    break;
   }
   default:
     return NULL_VALUE;
   }
+  return NULL_VALUE;
 }
