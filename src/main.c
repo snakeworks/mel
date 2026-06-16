@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 i32 main(void) {
-  const char *sample_source = "10 + 1 > 4 + 2";
+  const char *sample_source = "true == true\n";
 
   TokenArray tokens;
   tokenize(&tokens, sample_source);

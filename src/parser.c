@@ -20,7 +20,7 @@ Token advance(ParseContext *context) {
   return context->tokens->items[context->current++];
 }
 
-Expr *make_number(f64 value) {
+Expr *make_expr_number(f64 value) {
   Expr *e = malloc(sizeof(Expr));
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_NUMBER;
@@ -28,7 +28,7 @@ Expr *make_number(f64 value) {
   return e;
 }
 
-Expr *make_bool(bool value) {
+Expr *make_expr_boolean(bool value) {
   Expr *e = malloc(sizeof(Expr));
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_BOOLEAN;
@@ -83,7 +83,8 @@ Expr *parse_comparison(ParseContext *context) {
   while (
     peek(context).kind == TOK_LESS ||
     peek(context).kind == TOK_LESS_EQUAL ||
-    peek(context).kind == TOK_EQUAL ||
+    peek(context).kind == TOK_DOUBLE_EQUAL ||
+    peek(context).kind == TOK_BANG_EQUAL ||
     peek(context).kind == TOK_GREATER ||
     peek(context).kind == TOK_GREATER_EQUAL
   ) {
@@ -134,7 +135,15 @@ Expr *parse_atom(ParseContext *context) {
     char *c = malloc(sizeof(char) * length);
     strncpy(c, peek(context).lexeme.start, length);
     advance(context);
-    return make_number(atof(c));
+    return make_expr_number(atof(c));
+  }
+  else if (
+    peek(context).kind == TOK_TRUE ||
+    peek(context).kind == TOK_FALSE
+  ) {
+    bool value = peek(context).kind == TOK_TRUE;
+    advance(context);
+    return make_expr_boolean(value);
   }
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
@@ -152,10 +161,11 @@ static const char* op_string(TokenKind t) {
     case TOK_SLASH: return "/";
     case TOK_LESS: return "<";
     case TOK_LESS_EQUAL: return "<=";
-    case TOK_EQUAL: return "=";
+    case TOK_DOUBLE_EQUAL: return "==";
+    case TOK_BANG_EQUAL: return "!=";
     case TOK_GREATER: return ">";
     case TOK_GREATER_EQUAL: return ">=";
-    default:      return "?";
+    default: return "?";
   }
 }
 
@@ -209,20 +219,29 @@ Value expr_eval(Expr *expr) {
     switch (l.kind) {
     case VAL_NUMBER: {
       switch (expr->as.binary.op) {
-        case TOK_PLUS: return make_value_number(l.as.number + r.as.number);
-        case TOK_MINUS: return make_value_number(l.as.number - r.as.number);
-        case TOK_STAR: return make_value_number(l.as.number * r.as.number);
-        case TOK_SLASH: return make_value_number(l.as.number / r.as.number);
-        case TOK_LESS: return make_value_boolean(l.as.number < r.as.number);
-        case TOK_LESS_EQUAL: return make_value_boolean(l.as.number <= r.as.number);
-        case TOK_EQUAL: return make_value_boolean(l.as.number == r.as.number);
-        case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
-        case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
-        default: make_value_number(0.0);
+      case TOK_PLUS: return make_value_number(l.as.number + r.as.number);
+      case TOK_MINUS: return make_value_number(l.as.number - r.as.number);
+      case TOK_STAR: return make_value_number(l.as.number * r.as.number);
+      case TOK_SLASH: return make_value_number(l.as.number / r.as.number);
+      case TOK_LESS: return make_value_boolean(l.as.number < r.as.number);
+      case TOK_LESS_EQUAL: return make_value_boolean(l.as.number <= r.as.number);
+      case TOK_DOUBLE_EQUAL: return make_value_boolean(l.as.number == r.as.number);
+      case TOK_BANG_EQUAL: return make_value_boolean(l.as.number != r.as.number);
+      case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
+      case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
+      default: make_value_number(0.0);
       }
     }
     case VAL_BOOLEAN:
-      // TODO: Implement
+      switch (expr->as.binary.op) {
+      case TOK_LESS: return make_value_boolean(l.as.boolean < r.as.boolean);
+      case TOK_LESS_EQUAL: return make_value_boolean(l.as.boolean <= r.as.boolean);
+      case TOK_DOUBLE_EQUAL: return make_value_boolean(l.as.boolean == r.as.boolean);
+      case TOK_BANG_EQUAL: return make_value_boolean(l.as.boolean != r.as.boolean);
+      case TOK_GREATER: return make_value_boolean(l.as.boolean > r.as.boolean);
+      case TOK_GREATER_EQUAL: return make_value_boolean(l.as.boolean >= r.as.boolean);
+      default: make_value_boolean(false);
+      }
       break;
     case VAL_NULL:
       // TODO: Implement
