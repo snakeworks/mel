@@ -262,6 +262,7 @@ Value expr_eval(Expr *expr) {
     case VAL_STRING:
       switch (expr->as.binary.op) {
       case TOK_DOUBLE_EQUAL: return make_value_boolean(sv_is_equal(l.as.string, r.as.string));
+      case TOK_BANG_EQUAL: return make_value_boolean(!sv_is_equal(l.as.string, r.as.string));
       default: return NULL_VALUE;
       }
       break;
