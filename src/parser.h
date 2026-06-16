@@ -7,6 +7,7 @@
 typedef enum {
   VAL_NUMBER,
   VAL_BOOLEAN,
+  VAL_STRING,
   VAL_NULL,
 } ValueKind;
 
@@ -15,6 +16,7 @@ typedef struct {
   union {
     f64 number;
     bool boolean;
+    StringView string;
   } as;
 } Value;
 

@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "base.h"
 #include "lexer.h"
 #include <assert.h>
 #include <malloc.h>
@@ -36,6 +37,14 @@ Expr *make_expr_boolean(bool value) {
   return e;
 }
 
+Expr *make_expr_string(StringView value) {
+  Expr *e = malloc(sizeof(Expr));
+  e->kind = EXPR_VALUE;
+  e->as.value.kind = VAL_STRING;
+  e->as.value.as.string = value;
+  return e;
+}
+
 Expr *make_unary(TokenKind op, Expr *right) {
   Expr *e = malloc(sizeof(Expr));
   e->kind = EXPR_UNARY;
@@ -64,6 +73,13 @@ Value make_value_boolean(bool value) {
   Value v;
   v.kind = VAL_BOOLEAN;
   v.as.boolean = value;
+  return v;
+}
+
+Value make_value_string(StringView value) {
+  Value v;
+  v.kind = VAL_STRING;
+  v.as.string = value;
   return v;
 }
 
@@ -124,21 +140,18 @@ Expr *parse_unary(ParseContext *context) {
 Expr *parse_atom(ParseContext *context) {
   // TODO: Allocate to arena, otherwise this will leak
   if (peek(context).kind == TOK_NUMBER) {
-    u32 length = peek(context).lexeme.length;
-    char *c = malloc(sizeof(char) * length + 1);
-    strncpy(c, peek(context).lexeme.start, length);
-    c[length] = '\0';
-    advance(context);
-    return make_expr_number(atof(c));
-  }
-  else if (
+    return make_expr_number(sv_to_f64(advance(context).lexeme));
+  } else if (
     peek(context).kind == TOK_TRUE ||
     peek(context).kind == TOK_FALSE
   ) {
     bool value = peek(context).kind == TOK_TRUE;
     advance(context);
     return make_expr_boolean(value);
+  } else if (peek(context).kind == TOK_STRING) {
+    return make_expr_string(advance(context).lexeme);
   }
+
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
     Expr *inner = expr_parse(context);
@@ -171,6 +184,9 @@ void value_print(Value value) {
     break;
   case VAL_BOOLEAN:
     printf(value.as.boolean ? "true" : "false");
+    break;
+  case VAL_STRING:
+    printf(SV_FMT, SV_ARG(value.as.string));
     break;
   case VAL_NULL:
     printf("null");
@@ -214,7 +230,7 @@ Value expr_eval(Expr *expr) {
   case EXPR_BINARY: {
     Value l = expr_eval(expr->as.binary.left);
     Value r = expr_eval(expr->as.binary.right);
-    assert(l.kind == r.kind);
+    assert(l.kind == r.kind); // TODO: Will cause problems later
 
     switch (l.kind) {
     case VAL_NUMBER: {
@@ -241,6 +257,12 @@ Value expr_eval(Expr *expr) {
       case TOK_GREATER: return make_value_boolean(l.as.boolean > r.as.boolean);
       case TOK_GREATER_EQUAL: return make_value_boolean(l.as.boolean >= r.as.boolean);
       default: return make_value_boolean(false);
+      }
+      break;
+    case VAL_STRING:
+      switch (expr->as.binary.op) {
+      case TOK_DOUBLE_EQUAL: return make_value_boolean(sv_is_equal(l.as.string, r.as.string));
+      default: return NULL_VALUE;
       }
       break;
     case VAL_NULL:

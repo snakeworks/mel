@@ -42,4 +42,7 @@ typedef struct {
 #define SV_FMT "%.*s"
 #define SV_ARG(sv) (int) (sv).length, (sv).start
 
+bool sv_is_equal(StringView sv1, StringView sv2);
+f64 sv_to_f64(StringView sv);
+
 #endif
