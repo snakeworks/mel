@@ -133,6 +133,7 @@ void lexer_begin(LexerResult *result, const char *source) {
       seek(source, &current, '"');
       u32 length = current - start;
       add_token(array, TOK_STRING, &source[start], length, line);
+      break;
     }
     case ' ':
     case '\r':
