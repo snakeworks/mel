@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 i32 main(void) {
-  const char *sample_source = "\"hello\" == \"hello\"\n";
+  const char *sample_source = "(1 + 2 * 1)\n";
 
   TokenArray tokens;
   tokenize(&tokens, sample_source);

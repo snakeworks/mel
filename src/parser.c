@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Expr *expr_parse(ParseContext *context);
+Expr *parse_start(ParseContext *context);
 Expr *parse_comparison(ParseContext *context);
 Expr *parse_add_sub(ParseContext *context);
 Expr *parse_mul_div(ParseContext *context);
@@ -15,6 +15,10 @@ Expr *parse_atom(ParseContext *context);
 
 static Token peek(ParseContext *context) {
   return context->tokens->items[context->current];
+}
+
+static u32 cur_line(ParseContext *context) {
+  return context->tokens->items[context->current].line + 1;
 }
 
 Token advance(ParseContext *context) {
@@ -84,6 +88,14 @@ Value make_value_string(StringView value) {
 }
 
 Expr *expr_parse(ParseContext *context) {
+  Expr *e = parse_start(context);
+  if (peek(context).kind == TOK_RIGHT_PAREN) {
+    log_fatal(cur_line(context), "Unexpected closing parenthesis");
+  }
+  return e;
+}
+
+Expr *parse_start(ParseContext *context) {
   return parse_comparison(context);
 }
 
@@ -154,8 +166,10 @@ Expr *parse_atom(ParseContext *context) {
 
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
-    Expr *inner = expr_parse(context);
-    advance(context);
+    Expr *inner = parse_start(context);
+    if (advance(context).kind != TOK_RIGHT_PAREN) {
+      log_fatal(cur_line(context), "Expected closing parenthesis");
+    }
     return inner;
   }
   return NULL;
@@ -230,6 +244,7 @@ Value expr_eval(Expr *expr) {
   case EXPR_BINARY: {
     Value l = expr_eval(expr->as.binary.left);
     Value r = expr_eval(expr->as.binary.right);
+
     assert(l.kind == r.kind); // TODO: Will cause problems later
 
     switch (l.kind) {
