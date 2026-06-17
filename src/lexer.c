@@ -41,21 +41,35 @@ const char *token_to_str(Token token) {
   return "Unknown token";
 }
 
-static char peek(const char *source, u32 current) {
-  current++;
-  return source[current];
+static const char *peek(LexerContext *context) {
+  return &context->source[context->current];
 }
 
-void add_token(TokenArray *array, TokenKind kind, const char *lexeme_start, u32 lexeme_length, u32 line) {
+static const char *peek_next(LexerContext *context) {
+  return &context->source[context->current + 1];
+}
+
+static const char *advance(LexerContext *context) {
+  return &context->source[context->current++];
+}
+
+void add_token(LexerContext *context, TokenKind kind, const char *lexeme_start, u32 lexeme_length) {
   StringView s = {.start = lexeme_start, .length = lexeme_length};
-  Token t = {.kind = kind, .lexeme = s, .line = line};
-  da_append(array, t);
+  Token t = {.kind = kind, .lexeme = s, .line = context->line};
+  da_append(context->tokens, t);
 }
 
-void seek(const char *source, u32 *current, char symbol) {
-  while (source[*current] != symbol && source[*current] != '\0') {
-    (*current)++;
+bool seek(LexerContext *context, char symbol) {
+  while (*peek(context) != symbol) {
+    if (*peek(context) == '\0') {
+      log_err(context->errors, context->line + 1, "Expected '%c', but found end of input", symbol);
+      return false;
+    } else if (*peek(context) == '\n') {
+      context->line++;
+    }
+    context->current++;
   }
+  return true;
 }
 
 TokenKind str_to_identifier_kind(const char *start, u32 length) {
@@ -77,100 +91,114 @@ void lexer_begin(LexerResult *result, const char *source) {
   result->tokens = array;
   result->errors = malloc(sizeof(LogArray));
 
+  LexerContext context = {
+    .source = source,
+    .tokens = array,
+    .errors = result->errors,
+    .current = 0,
+    .line = 0
+  };
+
   da_init(array, 32);
   da_init(result->errors, 8);
 
-  u32 current = 0;
-  u32 line = 0;
-
-  while (source[current] != '\0') {
-    switch (source[current]) {
-    case '(': add_token(array, TOK_LEFT_PAREN, &source[current], 1, line); break;
-    case ')': add_token(array, TOK_RIGHT_PAREN, &source[current], 1, line); break;
-    case '{': add_token(array, TOK_LEFT_BRACE, &source[current], 1, line); break;
-    case '}': add_token(array, TOK_RIGHT_BRACE, &source[current], 1, line); break;
-    case ',': add_token(array, TOK_COMMA, &source[current], 1, line); break;
-    case '.': add_token(array, TOK_DOT, &source[current], 1, line); break;
-    case '+': add_token(array, TOK_PLUS, &source[current], 1, line); break;
-    case '-': add_token(array, TOK_MINUS, &source[current], 1, line); break;
-    case '*': add_token(array, TOK_STAR, &source[current], 1, line); break;
+  while (*peek(&context) != '\0') {
+    switch (*peek(&context)) {
+    case '(': add_token(&context, TOK_LEFT_PAREN, advance(&context), 1); break;
+    case ')': add_token(&context, TOK_RIGHT_PAREN, advance(&context), 1); break;
+    case '{': add_token(&context, TOK_LEFT_BRACE, advance(&context), 1); break;
+    case '}': add_token(&context, TOK_RIGHT_BRACE, advance(&context), 1); break;
+    case ',': add_token(&context, TOK_COMMA, advance(&context), 1); break;
+    case '.': add_token(&context, TOK_DOT, advance(&context), 1); break;
+    case '+': add_token(&context, TOK_PLUS, advance(&context), 1); break;
+    case '-': add_token(&context, TOK_MINUS, advance(&context), 1); break;
+    case '*': add_token(&context, TOK_STAR, advance(&context), 1); break;
     case '/': {
-      if (peek(source, current) == '/') {
-        seek(source, &current, '\n');
-        line++;
+      if (*peek_next(&context) == '/') {
+        seek(&context, '\n');
       } else {
-        add_token(array, TOK_SLASH, &source[current], 1, line);
+        add_token(&context, TOK_SLASH, advance(&context), 1);
       }
       break;
     }
     case '=': {
-      bool matches = peek(source, current) == '=';
-      add_token(array, matches ? TOK_DOUBLE_EQUAL : TOK_EQUAL, &source[current], matches ? 2 : 1, line);
-      if (matches) current++;
+      bool matches = *peek_next(&context) == '=';
+      add_token(&context, matches ? TOK_DOUBLE_EQUAL : TOK_EQUAL, advance(&context), matches ? 2 : 1);
+      if (matches) advance(&context);
       break;
     }
     case '>': {
-      bool matches = peek(source, current) == '=';
-      add_token(array, matches ? TOK_GREATER_EQUAL : TOK_GREATER, &source[current], matches ? 2 : 1, line);
-      if (matches) current++;
+      bool matches = *peek_next(&context) == '=';
+      add_token(&context, matches ? TOK_GREATER_EQUAL : TOK_GREATER, advance(&context), matches ? 2 : 1);
+      if (matches) advance(&context);
       break;
     }
     case '<': {
-      bool matches = peek(source, current) == '=';
-      add_token(array, matches ? TOK_LESS_EQUAL : TOK_LESS, &source[current], matches ? 2 : 1, line);
-      if (matches) current++;
+      bool matches = *peek_next(&context) == '=';
+      add_token(&context, matches ? TOK_LESS_EQUAL : TOK_LESS, advance(&context), matches ? 2 : 1);
+      if (matches) advance(&context);
       break;
     }
     case '!': {
-      bool matches = peek(source, current) == '=';
-      add_token(array, matches ? TOK_BANG_EQUAL : TOK_BANG, &source[current], matches ? 2 : 1, line);
-      if (matches) current++;
+      bool matches = *peek_next(&context) == '=';
+      add_token(&context, matches ? TOK_BANG_EQUAL : TOK_BANG, advance(&context), matches ? 2 : 1);
+      if (matches) advance(&context);
       break;
     }
     case '"': {
-      current++;
-      u32 start = current;
-      seek(source, &current, '"');
-      u32 length = current - start;
-      add_token(array, TOK_STRING, &source[start], length, line);
+      advance(&context);
+      u32 start = context.current;
+      if (seek(&context, '"')) {
+        u32 length = context.current - start;
+        add_token(&context, TOK_STRING, &source[start], length);
+        advance(&context);
+      }
       break;
     }
     case ' ':
     case '\r':
     case '\t':
+      advance(&context);
       break;
-    case '\n': line++; break;
+    case '\n':
+      context.line++;
+      advance(&context);
+      break;
     default: {
-      if (isdigit(source[current])) {
-        u32 start = current;
+      if (isdigit(*peek(&context))) {
+        u32 start = context.current;
 
-        while (isdigit(source[current])) current++;
+        while (isdigit(*peek(&context))) advance(&context);
 
-        if (source[current] == '.' && isdigit(peek(source, current))) {
-          current++;
-          while (isdigit(source[current])) current++;
+        if (*peek(&context) == '.') {
+          if (isdigit(*peek_next(&context))) {
+            advance(&context);
+            while (isdigit(*peek(&context))) advance(&context);
+          } else {
+            log_err(context.errors, context.line + 1, "Unexpected number with trailing dot");
+            advance(&context);
+          }
         }
 
-        u32 length = current - start;
-        current--; // So we don't increase current twice loop
-        add_token(array, TOK_NUMBER, &source[start], length, line);
+        u32 length = context.current - start;
+        add_token(&context, TOK_NUMBER, &source[start], length);
 
         break;
-      } else if (isalpha(source[current])) {
-        u32 start = current;
-        while (isalpha(source[current])) current++;
-        u32 length = current - start;
-        current--;
+      } else if (isalpha(*peek(&context))) {
+        u32 start = context.current;
+        while (isalpha(*peek(&context))) advance(&context);
+        u32 length = context.current - start;
         TokenKind kind = str_to_identifier_kind(&source[start], length);
-        add_token(array, kind, &source[start], length, line);
+        add_token(&context, kind, &source[start], length);
+      } else {
+        log_err(context.errors, context.line + 1, "Unexpected character '%c'", *peek(&context));
+        advance(&context);
       }
     }
     }
-
-    current++;
   }
 
-  add_token(array, TOK_EOF, &source[current], 1, line);
+  add_token(&context, TOK_EOF, advance(&context), 1);
 }
 
 void print_token_array(TokenArray *array) {

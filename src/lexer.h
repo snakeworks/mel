@@ -54,7 +54,15 @@ typedef struct {
   u32 capacity;
 } TokenArray;
 
-typedef struct{
+typedef struct {
+  const char *source;
+  TokenArray *tokens;
+  LogArray *errors;
+  u32 current;
+  u32 line;
+} LexerContext;
+
+typedef struct {
   TokenArray *tokens;
   LogArray *errors;
 } LexerResult;
