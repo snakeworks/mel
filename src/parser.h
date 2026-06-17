@@ -42,9 +42,17 @@ struct Expr {
 
 typedef struct {
   TokenArray *tokens;
+  LogArray *errors;
   u32 current;
 } ParseContext;
 
+typedef struct {
+  // TODO: Include list of statements and remove expr
+  Expr *expr;
+  LogArray *errors;
+} ParserResult;
+
+void parser_begin(ParserResult *result, TokenArray *tokens);
 Expr *expr_parse(ParseContext *context);
 void expr_print(Expr *expr);
 Value expr_eval(Expr *expr);

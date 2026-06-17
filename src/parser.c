@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
-Expr *parse_start(ParseContext *context);
+Expr *parse_expr_start(ParseContext *context);
 Expr *parse_comparison(ParseContext *context);
 Expr *parse_add_sub(ParseContext *context);
 Expr *parse_mul_div(ParseContext *context);
@@ -21,8 +22,17 @@ static u32 cur_line(ParseContext *context) {
   return context->tokens->items[context->current].line + 1;
 }
 
-Token advance(ParseContext *context) {
+static Token advance(ParseContext *context) {
   return context->tokens->items[context->current++];
+}
+
+static Token expect(ParseContext *context, TokenKind token, const char *msg, ...) {
+  if (peek(context).kind == token) return advance(context);
+  va_list list;
+  va_start(list, msg);
+  vlog_err(context->errors, cur_line(context), msg, list);
+  va_end(list);
+  return peek(context);
 }
 
 Expr *make_expr_number(f64 value) {
@@ -87,15 +97,24 @@ Value make_value_string(StringView value) {
   return v;
 }
 
+void parser_begin(ParserResult *result, TokenArray *tokens) {
+  result->errors = malloc(sizeof(LogArray));
+  da_init(result->errors, 8);
+  ParseContext context = {
+    .tokens = tokens,
+    .errors = result->errors,
+    .current = 0
+  };
+  result->expr = expr_parse(&context);
+}
+
 Expr *expr_parse(ParseContext *context) {
-  Expr *e = parse_start(context);
-  if (peek(context).kind == TOK_RIGHT_PAREN) {
-    log_fatal(cur_line(context), "Unexpected closing parenthesis");
-  }
+  Expr *e = parse_expr_start(context);
+  expect(context, TOK_EOF, "Unexpected leftover tokens");
   return e;
 }
 
-Expr *parse_start(ParseContext *context) {
+Expr *parse_expr_start(ParseContext *context) {
   return parse_comparison(context);
 }
 
@@ -166,10 +185,8 @@ Expr *parse_atom(ParseContext *context) {
 
   if (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
-    Expr *inner = parse_start(context);
-    if (advance(context).kind != TOK_RIGHT_PAREN) {
-      log_fatal(cur_line(context), "Expected closing parenthesis");
-    }
+    Expr *inner = parse_expr_start(context);
+    expect(context, TOK_RIGHT_PAREN, "Expected closing parenthesis");
     return inner;
   }
   return NULL;

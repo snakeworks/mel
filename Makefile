@@ -6,11 +6,14 @@ all: build/main
 build:
 	mkdir -p build
 
-build/main: build/main.o build/base.o build/lexer.o build/parser.o
+build/main: build/main.o build/base.o build/lexer.o build/parser.o build/program.o
 	$(CC) $(CFLAGS) $^ -o build/main
 
 build/main.o: src/main.c | build
 	$(CC) $(CFLAGS) -c src/main.c -o $@
+
+build/program.o: src/program.c src/program.h | build
+	$(CC) $(CFLAGS) -c src/program.c -o $@
 
 build/parser.o: src/parser.c src/parser.h | build
 	$(CC) $(CFLAGS) -c src/parser.c -o $@

@@ -1,19 +1,10 @@
 #include "base.h"
-#include "lexer.h"
-#include "parser.h"
-#include <stdio.h>
+#include "program.h"
 
 i32 main(void) {
   const char *sample_source = "(1 + 2 * 1)\n";
 
-  TokenArray tokens;
-  tokenize(&tokens, sample_source);
-  print_token_array(&tokens);
-  ParseContext context = {.tokens = &tokens, .current = 0};
-  Expr *e = expr_parse(&context);
-  expr_print(e); printf("\n");
-  Value result = expr_eval(e);
-  printf("Result: "); value_print(result); printf("\n");
+  program_run(sample_source);
 
   return 0;
 }

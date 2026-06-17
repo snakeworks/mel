@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -39,11 +40,31 @@ typedef struct {
   u32 length;
 } StringView;
 
+typedef enum {
+  LOG_ERR,
+  LOG_FATAL
+} LogLevel;
+
+typedef struct {
+  LogLevel level;
+  const char *msg;
+  u32 line;
+} LogMessage;
+
+typedef struct {
+  LogMessage *items;
+  u32 size;
+  u32 capacity;
+} LogArray;
+
 #define SV_FMT "%.*s"
 #define SV_ARG(sv) (int) (sv).length, (sv).start
 
-void log_err(u32 line, const char *msg, ...);
-void log_fatal(u32 line, const char *msg, ...);
+void log_err(LogArray *logs, u32 line, const char *msg, ...);
+void vlog_err(LogArray *array, u32 line, const char *msg, va_list args);
+void log_fatal(LogArray *logs, u32 line, const char *msg, ...);
+void vlog_fatal(LogArray *array, u32 line, const char *msg, va_list args);
+void print_logs(LogArray *logs);
 
 bool sv_is_equal(StringView sv1, StringView sv2);
 f64 sv_to_f64(StringView sv);

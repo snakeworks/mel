@@ -72,8 +72,13 @@ TokenKind str_to_identifier_kind(const char *start, u32 length) {
   return TOK_IDENTIFIER;
 }
 
-void tokenize(TokenArray *array, const char *source) {
+void lexer_begin(LexerResult *result, const char *source) {
+  TokenArray *array = malloc(sizeof(TokenArray)); // TODO: This is never cleaned up, memory will leak
+  result->tokens = array;
+  result->errors = malloc(sizeof(LogArray));
+
   da_init(array, 32);
+  da_init(result->errors, 8);
 
   u32 current = 0;
   u32 line = 0;

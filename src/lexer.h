@@ -54,7 +54,12 @@ typedef struct {
   u32 capacity;
 } TokenArray;
 
-void tokenize(TokenArray *array, const char *source);
+typedef struct{
+  TokenArray *tokens;
+  LogArray *errors;
+} LexerResult;
+
+void lexer_begin(LexerResult *result, const char *source);
 void print_token_array(TokenArray *array);
 
 #endif
