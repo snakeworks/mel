@@ -31,4 +31,6 @@ void program_run(const char *source) {
 cleanup:
   arena_free(arena);
   free(lexer_result.tokens);
+  free(lexer_result.errors);
+  free(parser_result.errors);
 }

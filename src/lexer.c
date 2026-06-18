@@ -90,7 +90,7 @@ TokenKind str_to_identifier_kind(const char *start, u32 length) {
 void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
   TokenArray *array = malloc(sizeof(TokenArray)); // free called in program.c
   result->tokens = array;
-  result->errors = malloc(sizeof(LogArray));
+  result->errors = malloc(sizeof(LogArray)); // free called in program.c
 
   LexerContext context = {
     .source = source,
