@@ -1,6 +1,42 @@
 #include "base.h"
+#include <stddef.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
+
+static u64 align_up(u64 n, u64 align) {
+  assert((align & (align - 1)) == 0);
+  return (n + (align - 1)) & ~(align - 1);
+}
+
+Arena *arena_init(u64 capacity) {
+  Arena *arena = (Arena *)malloc(capacity + sizeof(Arena));
+  if (arena == NULL) {
+    // program ran out of memory, returning NULL here, because we
+    // have bigger problems to worry about
+    return NULL;
+  }
+  arena->capacity = capacity + sizeof(Arena);
+  arena->offset = sizeof(Arena);
+  return arena;
+}
+
+void arena_free(Arena *arena) {
+  if (arena == NULL) {
+    return;
+  }
+  free(arena);
+}
+
+void *arena_alloc(Arena *arena, u64 size, u64 align) {
+  u64 aligned = align_up(arena->offset, align);
+  if (aligned > arena->capacity || size > arena->capacity - aligned) {
+    return NULL;
+  }
+  void *ptr = (u8*)arena + aligned;
+  arena->offset = aligned + size;
+  return ptr;
+}
 
 // TODO: As you can see, memory leaks are none of my concern at the moment, but please fix this later
 static char *vformat(const char *msg, va_list args) {

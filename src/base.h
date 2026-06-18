@@ -36,6 +36,11 @@
     return #val
 
 typedef struct {
+  u64 capacity;
+  u64 offset;
+} Arena;
+
+typedef struct {
   const char *start;
   u32 length;
 } StringView;
@@ -59,6 +64,12 @@ typedef struct {
 
 #define SV_FMT "%.*s"
 #define SV_ARG(sv) (int) (sv).length, (sv).start
+
+#define arena_push(arena, T) ((T *)arena_alloc(arena, sizeof(T), _Alignof(T)))
+
+Arena *arena_init(u64 size);
+void arena_free(Arena *arena);
+void *arena_alloc(Arena *arena, u64 size, u64 align);
 
 void log_err(LogArray *logs, u32 line, const char *msg, ...);
 void vlog_err(LogArray *array, u32 line, const char *msg, va_list args);
