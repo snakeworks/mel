@@ -45,15 +45,28 @@ typedef enum {
 } StmtKind;
 
 typedef struct {
+  StmtKind kind;
+  union {
+    Expr *expr;
+  } as;
+} Stmt;
+
+typedef struct {
+  Stmt *items;
+  u32 capacity;
+  u32 size;
+} StmtArray;
+
+typedef struct {
   TokenArray *tokens;
+  StmtArray *statements;
   LogArray *errors;
   Arena *arena;
   u32 current;
 } ParserContext;
 
 typedef struct {
-  // TODO: Include list of statements and remove expr
-  Expr *expr;
+  StmtArray *statements;
   LogArray *errors;
 } ParserResult;
 

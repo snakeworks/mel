@@ -16,6 +16,8 @@ void program_run(const char *source) {
     return;
   }
 
+  print_token_array(lexer_result.tokens);
+
   parser_begin(&parser_result, lexer_result.tokens, arena);
 
   if (parser_result.errors->size > 0) {
@@ -24,9 +26,7 @@ void program_run(const char *source) {
     return;
   }
 
-  // TODO: Temporary, remove later
-  Value value = expr_eval(parser_result.expr);
-  value_print(value); printf("\n");
+  printf("%d\n", parser_result.statements->items[0].kind);
 
 cleanup:
   if (arena != NULL) arena_free(arena);

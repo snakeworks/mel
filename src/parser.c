@@ -13,6 +13,8 @@ Expr *parse_add_sub(ParserContext *context);
 Expr *parse_mul_div(ParserContext *context);
 Expr *parse_unary(ParserContext *context);
 Expr *parse_atom(ParserContext *context);
+Stmt parse_statement(ParserContext *context);
+void parse_program(ParserContext *context);
 
 static Token peek(ParserContext *context) {
   return context->tokens->items[context->current];
@@ -99,20 +101,45 @@ Value make_value_string(StringView value) {
 }
 
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
+  StmtArray *statements = malloc(sizeof(StmtArray));
+  result->statements = statements;
+  da_init(statements, 8);
+
   result->errors = malloc(sizeof(LogArray));
   da_init(result->errors, 8);
   ParserContext context = {
     .tokens = tokens,
+    .statements = statements,
     .errors = result->errors,
     .arena = arena,
     .current = 0
   };
-  result->expr = expr_parse(&context);
+  parse_program(&context);
+  expect(&context, TOK_EOF, "Unexpected leftover tokens");
+}
+
+void parse_program(ParserContext *context) {
+  while (peek(context).kind != TOK_EOF) {
+    Stmt stmt = parse_statement(context);
+    da_append(context->statements, stmt);
+  }
+}
+
+Stmt parse_statement(ParserContext *context) {
+  switch (peek(context).kind) {
+  default: {
+    Expr *expr = expr_parse(context);
+    expect(context, TOK_SEMICOLON, "Expected ';' after expression");
+    return (Stmt){
+      .kind = STMT_EXPR,
+      .as.expr = expr
+    };
+  }
+  }
 }
 
 Expr *expr_parse(ParserContext *context) {
   Expr *e = parse_expr_start(context);
-  expect(context, TOK_EOF, "Unexpected leftover tokens");
   return e;
 }
 
@@ -248,6 +275,7 @@ void expr_print(Expr *e) {
   }
 }
 
+// TODO: Eval logic probably shouldn't be in parser
 Value expr_eval(Expr *expr) {
   if (expr == NULL) {
     return NULL_VALUE;
