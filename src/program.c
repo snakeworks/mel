@@ -5,8 +5,9 @@
 
 void program_run(const char *source) {
   Arena *arena = arena_init(1024 * 1000); // 1 MB
-
   LexerResult lexer_result = {0};
+  ParserResult parser_result = {0};
+
   lexer_begin(&lexer_result, source, arena);
 
   if (lexer_result.errors->size > 0) {
@@ -15,7 +16,6 @@ void program_run(const char *source) {
     return;
   }
 
-  ParserResult parser_result = {0};
   parser_begin(&parser_result, lexer_result.tokens, arena);
 
   if (parser_result.errors->size > 0) {
@@ -29,8 +29,8 @@ void program_run(const char *source) {
   value_print(value); printf("\n");
 
 cleanup:
-  arena_free(arena);
-  free(lexer_result.tokens);
-  free(lexer_result.errors);
-  free(parser_result.errors);
+  if (arena != NULL) arena_free(arena);
+  if (lexer_result.tokens != NULL) free(lexer_result.tokens);
+  if (lexer_result.errors != NULL) free(lexer_result.errors);
+  if (parser_result.errors != NULL) free(parser_result.errors);
 }
