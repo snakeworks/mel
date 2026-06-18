@@ -115,7 +115,6 @@ void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
     .current = 0
   };
   parse_program(&context);
-  expect(&context, TOK_EOF, "Unexpected leftover tokens");
 }
 
 void parse_program(ParserContext *context) {

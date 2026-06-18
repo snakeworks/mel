@@ -17,9 +17,11 @@
 #define f64 double
 
 #define da_init(array, initial_capacity)                                       \
-  array->items = malloc(initial_capacity * sizeof(*array->items));             \
-  array->size = 0;                                                             \
-  array->capacity = initial_capacity;
+  do {                                                                         \
+    array->items = malloc(initial_capacity * sizeof(*array->items));           \
+    array->size = 0;                                                           \
+    array->capacity = initial_capacity;                                        \
+  } while (false)                                                              \
 
 #define da_append(array, element)                                              \
   do {                                                                         \
@@ -30,6 +32,14 @@
     }                                                                          \
     array->items[array->size++] = element;                                     \
   } while (false);
+
+#define da_free(array)                                                         \
+  do {                                                                         \
+    free((array)->items);                                                      \
+    (array)->items = NULL;                                                     \
+    (array)->size = 0;                                                         \
+    (array)->capacity = 0;                                                     \
+  } while (false)
 
 #define CASE_STRING(val)                                                       \
   case val:                                                                    \

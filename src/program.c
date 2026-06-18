@@ -30,8 +30,8 @@ void program_run(const char *source) {
 
 cleanup:
   if (arena != NULL) arena_free(arena);
-  if (lexer_result.tokens != NULL) free(lexer_result.tokens);
-  if (lexer_result.errors != NULL) free(lexer_result.errors);
-  if (parser_result.statements != NULL) free(parser_result.statements);
-  if (parser_result.errors != NULL) free(parser_result.errors);
+  if (lexer_result.tokens != NULL) { da_free(lexer_result.tokens); free(lexer_result.tokens); }
+  if (lexer_result.errors != NULL) { da_free(lexer_result.errors); free(lexer_result.errors); }
+  if (parser_result.statements != NULL) { da_free(parser_result.statements); free(parser_result.statements); }
+  if (parser_result.errors != NULL) { da_free(parser_result.errors); free(parser_result.errors); }
 }
