@@ -30,8 +30,9 @@ static Token expect(ParseContext *context, TokenKind token, const char *msg, ...
   if (peek(context).kind == token) return advance(context);
   va_list list;
   va_start(list, msg);
-  vlog_err(context->errors, cur_line(context), msg, list);
+  char *ptr = arena_alloc_vformat(context->arena, msg, list);
   va_end(list);
+  log_err(context->errors, cur_line(context), ptr);
   return peek(context);
 }
 
@@ -248,6 +249,10 @@ void expr_print(Expr *e) {
 }
 
 Value expr_eval(Expr *expr) {
+  if (expr == NULL) {
+    return NULL_VALUE;
+  }
+
   switch (expr->kind) {
   case EXPR_VALUE:
     return expr->as.value;

@@ -38,42 +38,41 @@ void *arena_alloc(Arena *arena, u64 size, u64 align) {
   return ptr;
 }
 
-// TODO: As you can see, memory leaks are none of my concern at the moment, but please fix this later
-static char *vformat(const char *msg, va_list args) {
+void *arena_alloc_format(Arena *arena, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  void *ptr = arena_alloc_vformat(arena, format, args);
+  va_end(args);
+  return ptr;
+}
+
+void *arena_alloc_vformat(Arena *arena, const char *format, va_list args) {
   va_list copy;
   va_copy(copy, args);
-  u32 len = vsnprintf(NULL, 0, msg, copy);
+
+  u32 len = vsnprintf(NULL, 0, format, copy);
   va_end(copy);
 
-  char *buf = malloc(len + 1);
-  vsnprintf(buf, len + 1, msg, args);
+  char *buf = arena_alloc(
+    arena,
+    len + 1,
+    _Alignof(char *)
+  );
+
+  vsnprintf(buf, len + 1, format, args);
+  buf[len] = '\0';
+
   return buf;
 }
 
-void vlog_err(LogArray *array, u32 line, const char *msg, va_list args) {
-  char *formatted = vformat(msg, args);
-  LogMessage m = { .level = LOG_ERR, .msg = formatted, .line = line };
+void log_err(LogArray *array, u32 line, const char *msg) {
+  LogMessage m = { .level = LOG_ERR, .msg = msg, .line = line };
   da_append(array, m);
 }
 
-void log_err(LogArray *array, u32 line, const char *msg, ...) {
-  va_list args;
-  va_start(args, msg);
-  vlog_err(array, line, msg, args);
-  va_end(args);
-}
-
-void vlog_fatal(LogArray *array, u32 line, const char *msg, va_list args) {
-  char *formatted = vformat(msg, args);
-  LogMessage m = { .level = LOG_FATAL, .msg = formatted, .line = line };
+void log_fatal(LogArray *array, u32 line, const char *msg) {
+  LogMessage m = { .level = LOG_FATAL, .msg = msg, .line = line };
   da_append(array, m);
-}
-
-void log_fatal(LogArray *array, u32 line, const char *msg, ...) {
-  va_list args;
-  va_start(args, msg);
-  vlog_fatal(array, line, msg, args);
-  va_end(args);
 }
 
 const char *log_level_to_str(LogLevel level) {
@@ -87,7 +86,7 @@ const char *log_level_to_str(LogLevel level) {
 void print_logs(LogArray *logs) {
   for (u32 i = 0; i < logs->size; i++) {
     printf(
-      "[%s] %s (line %d)",
+      "%s: %s (line %d)",
       log_level_to_str(logs->items[i].level),
       logs->items[i].msg,
       logs->items[i].line

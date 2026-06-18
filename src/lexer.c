@@ -62,7 +62,8 @@ void add_token(LexerContext *context, TokenKind kind, const char *lexeme_start, 
 bool seek(LexerContext *context, char symbol) {
   while (*peek(context) != symbol) {
     if (*peek(context) == '\0') {
-      log_err(context->errors, context->line + 1, "Expected '%c', but found end of input", symbol);
+      char *ptr = arena_alloc_format(context->arena, "Expected '%c', but found end of input", symbol);
+      log_err(context->errors, context->line + 1, ptr);
       return false;
     } else if (*peek(context) == '\n') {
       context->line++;
@@ -86,8 +87,8 @@ TokenKind str_to_identifier_kind(const char *start, u32 length) {
   return TOK_IDENTIFIER;
 }
 
-void lexer_begin(LexerResult *result, const char *source) {
-  TokenArray *array = malloc(sizeof(TokenArray)); // TODO: This is never cleaned up, memory will leak
+void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
+  TokenArray *array = malloc(sizeof(TokenArray)); // free called in program.c
   result->tokens = array;
   result->errors = malloc(sizeof(LogArray));
 
@@ -95,6 +96,7 @@ void lexer_begin(LexerResult *result, const char *source) {
     .source = source,
     .tokens = array,
     .errors = result->errors,
+    .arena = arena,
     .current = 0,
     .line = 0
   };
@@ -191,7 +193,8 @@ void lexer_begin(LexerResult *result, const char *source) {
         TokenKind kind = str_to_identifier_kind(&source[start], length);
         add_token(&context, kind, &source[start], length);
       } else {
-        log_err(context.errors, context.line + 1, "Unexpected character '%c'", *peek(&context));
+        char *ptr = arena_alloc_format(context.arena, "Unexpected character '%c'", *peek(&context));
+        log_err(context.errors, context.line + 1, ptr);
         advance(&context);
       }
     }

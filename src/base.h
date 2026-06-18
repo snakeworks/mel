@@ -70,11 +70,11 @@ typedef struct {
 Arena *arena_init(u64 size);
 void arena_free(Arena *arena);
 void *arena_alloc(Arena *arena, u64 size, u64 align);
+void *arena_alloc_format(Arena *arena, const char *format, ...);
+void *arena_alloc_vformat(Arena *arena, const char *format, va_list args);
 
-void log_err(LogArray *logs, u32 line, const char *msg, ...);
-void vlog_err(LogArray *array, u32 line, const char *msg, va_list args);
-void log_fatal(LogArray *logs, u32 line, const char *msg, ...);
-void vlog_fatal(LogArray *array, u32 line, const char *msg, va_list args);
+void log_err(LogArray *logs, u32 line, const char *msg);
+void log_fatal(LogArray *logs, u32 line, const char *msg);
 void print_logs(LogArray *logs);
 
 bool sv_is_equal(StringView sv1, StringView sv2);

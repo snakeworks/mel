@@ -58,6 +58,7 @@ typedef struct {
   const char *source;
   TokenArray *tokens;
   LogArray *errors;
+  Arena *arena;
   u32 current;
   u32 line;
 } LexerContext;
@@ -67,7 +68,7 @@ typedef struct {
   LogArray *errors;
 } LexerResult;
 
-void lexer_begin(LexerResult *result, const char *source);
+void lexer_begin(LexerResult *result, const char *source, Arena *arena);
 void print_token_array(TokenArray *array);
 
 #endif
