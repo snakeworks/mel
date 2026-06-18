@@ -45,7 +45,7 @@ typedef struct {
   LogArray *errors;
   Arena *arena;
   u32 current;
-} ParseContext;
+} ParserContext;
 
 typedef struct {
   // TODO: Include list of statements and remove expr
@@ -54,7 +54,7 @@ typedef struct {
 } ParserResult;
 
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena);
-Expr *expr_parse(ParseContext *context);
+Expr *expr_parse(ParserContext *context);
 void expr_print(Expr *expr);
 Value expr_eval(Expr *expr);
 void value_print(Value value);

@@ -7,26 +7,26 @@
 #include <string.h>
 #include <stdarg.h>
 
-Expr *parse_expr_start(ParseContext *context);
-Expr *parse_comparison(ParseContext *context);
-Expr *parse_add_sub(ParseContext *context);
-Expr *parse_mul_div(ParseContext *context);
-Expr *parse_unary(ParseContext *context);
-Expr *parse_atom(ParseContext *context);
+Expr *parse_expr_start(ParserContext *context);
+Expr *parse_comparison(ParserContext *context);
+Expr *parse_add_sub(ParserContext *context);
+Expr *parse_mul_div(ParserContext *context);
+Expr *parse_unary(ParserContext *context);
+Expr *parse_atom(ParserContext *context);
 
-static Token peek(ParseContext *context) {
+static Token peek(ParserContext *context) {
   return context->tokens->items[context->current];
 }
 
-static u32 cur_line(ParseContext *context) {
+static u32 cur_line(ParserContext *context) {
   return context->tokens->items[context->current].line + 1;
 }
 
-static Token advance(ParseContext *context) {
+static Token advance(ParserContext *context) {
   return context->tokens->items[context->current++];
 }
 
-static Token expect(ParseContext *context, TokenKind token, const char *msg, ...) {
+static Token expect(ParserContext *context, TokenKind token, const char *msg, ...) {
   if (peek(context).kind == token) return advance(context);
   va_list list;
   va_start(list, msg);
@@ -36,7 +36,7 @@ static Token expect(ParseContext *context, TokenKind token, const char *msg, ...
   return peek(context);
 }
 
-Expr *make_expr_number(ParseContext *context, f64 value) {
+Expr *make_expr_number(ParserContext *context, f64 value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_NUMBER;
@@ -44,7 +44,7 @@ Expr *make_expr_number(ParseContext *context, f64 value) {
   return e;
 }
 
-Expr *make_expr_boolean(ParseContext *context, bool value) {
+Expr *make_expr_boolean(ParserContext *context, bool value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_BOOLEAN;
@@ -52,7 +52,7 @@ Expr *make_expr_boolean(ParseContext *context, bool value) {
   return e;
 }
 
-Expr *make_expr_string(ParseContext *context, StringView value) {
+Expr *make_expr_string(ParserContext *context, StringView value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_STRING;
@@ -60,7 +60,7 @@ Expr *make_expr_string(ParseContext *context, StringView value) {
   return e;
 }
 
-Expr *make_unary(ParseContext *context, TokenKind op, Expr *right) {
+Expr *make_unary(ParserContext *context, TokenKind op, Expr *right) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_UNARY;
   e->as.unary.op = op;
@@ -68,7 +68,7 @@ Expr *make_unary(ParseContext *context, TokenKind op, Expr *right) {
   return e;
 }
 
-Expr *make_binary(ParseContext *context, Expr *left, TokenKind op, Expr *right) {
+Expr *make_binary(ParserContext *context, Expr *left, TokenKind op, Expr *right) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_BINARY;
   e->as.binary.left = left;
@@ -101,7 +101,7 @@ Value make_value_string(StringView value) {
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
   result->errors = malloc(sizeof(LogArray));
   da_init(result->errors, 8);
-  ParseContext context = {
+  ParserContext context = {
     .tokens = tokens,
     .errors = result->errors,
     .arena = arena,
@@ -110,17 +110,17 @@ void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
   result->expr = expr_parse(&context);
 }
 
-Expr *expr_parse(ParseContext *context) {
+Expr *expr_parse(ParserContext *context) {
   Expr *e = parse_expr_start(context);
   expect(context, TOK_EOF, "Unexpected leftover tokens");
   return e;
 }
 
-Expr *parse_expr_start(ParseContext *context) {
+Expr *parse_expr_start(ParserContext *context) {
   return parse_comparison(context);
 }
 
-Expr *parse_comparison(ParseContext *context) {
+Expr *parse_comparison(ParserContext *context) {
   Expr *left = parse_add_sub(context);
   while (
     peek(context).kind == TOK_LESS ||
@@ -138,7 +138,7 @@ Expr *parse_comparison(ParseContext *context) {
   return left;
 }
 
-Expr *parse_add_sub(ParseContext *context) {
+Expr *parse_add_sub(ParserContext *context) {
   Expr *left = parse_mul_div(context);
   while (peek(context).kind == TOK_PLUS || peek(context).kind == TOK_MINUS) {
     TokenKind op = peek(context).kind;
@@ -149,7 +149,7 @@ Expr *parse_add_sub(ParseContext *context) {
   return left;
 }
 
-Expr *parse_mul_div(ParseContext *context) {
+Expr *parse_mul_div(ParserContext *context) {
   Expr *left = parse_unary(context);
   while (peek(context).kind == TOK_STAR || peek(context).kind == TOK_SLASH) {
     TokenKind op = peek(context).kind;
@@ -160,7 +160,7 @@ Expr *parse_mul_div(ParseContext *context) {
   return left;
 }
 
-Expr *parse_unary(ParseContext *context) {
+Expr *parse_unary(ParserContext *context) {
   while (peek(context).kind == TOK_MINUS) {
     TokenKind op = peek(context).kind;
     advance(context);
@@ -170,7 +170,7 @@ Expr *parse_unary(ParseContext *context) {
   return parse_atom(context);
 }
 
-Expr *parse_atom(ParseContext *context) {
+Expr *parse_atom(ParserContext *context) {
   if (peek(context).kind == TOK_NUMBER) {
     return make_expr_number(context, sv_to_f64(advance(context).lexeme));
   } else if (
