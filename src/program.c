@@ -32,5 +32,6 @@ cleanup:
   if (arena != NULL) arena_free(arena);
   if (lexer_result.tokens != NULL) free(lexer_result.tokens);
   if (lexer_result.errors != NULL) free(lexer_result.errors);
+  if (parser_result.statements != NULL) free(parser_result.statements);
   if (parser_result.errors != NULL) free(parser_result.errors);
 }
