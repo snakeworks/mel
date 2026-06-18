@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 void program_run(const char *source) {
+  Arena *arena = arena_init(1024 * 1000); // 1 MB
+
   LexerResult lexer_result = {0};
   lexer_begin(&lexer_result, source);
 
@@ -13,7 +15,7 @@ void program_run(const char *source) {
   }
 
   ParserResult parser_result = {0};
-  parser_begin(&parser_result, lexer_result.tokens);
+  parser_begin(&parser_result, lexer_result.tokens, arena);
 
   if (parser_result.errors->size > 0) {
     print_logs(parser_result.errors);

@@ -35,40 +35,40 @@ static Token expect(ParseContext *context, TokenKind token, const char *msg, ...
   return peek(context);
 }
 
-Expr *make_expr_number(f64 value) {
-  Expr *e = malloc(sizeof(Expr));
+Expr *make_expr_number(ParseContext *context, f64 value) {
+  Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_NUMBER;
   e->as.value.as.number = value;
   return e;
 }
 
-Expr *make_expr_boolean(bool value) {
-  Expr *e = malloc(sizeof(Expr));
+Expr *make_expr_boolean(ParseContext *context, bool value) {
+  Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_BOOLEAN;
   e->as.value.as.boolean = value;
   return e;
 }
 
-Expr *make_expr_string(StringView value) {
-  Expr *e = malloc(sizeof(Expr));
+Expr *make_expr_string(ParseContext *context, StringView value) {
+  Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
   e->as.value.kind = VAL_STRING;
   e->as.value.as.string = value;
   return e;
 }
 
-Expr *make_unary(TokenKind op, Expr *right) {
-  Expr *e = malloc(sizeof(Expr));
+Expr *make_unary(ParseContext *context, TokenKind op, Expr *right) {
+  Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_UNARY;
   e->as.unary.op = op;
   e->as.unary.right = right;
   return e;
 }
 
-Expr *make_binary(Expr *left, TokenKind op, Expr *right) {
-  Expr *e = malloc(sizeof(Expr));
+Expr *make_binary(ParseContext *context, Expr *left, TokenKind op, Expr *right) {
+  Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_BINARY;
   e->as.binary.left = left;
   e->as.binary.op = op;
@@ -97,12 +97,13 @@ Value make_value_string(StringView value) {
   return v;
 }
 
-void parser_begin(ParserResult *result, TokenArray *tokens) {
+void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
   result->errors = malloc(sizeof(LogArray));
   da_init(result->errors, 8);
   ParseContext context = {
     .tokens = tokens,
     .errors = result->errors,
+    .arena = arena,
     .current = 0
   };
   result->expr = expr_parse(&context);
@@ -131,7 +132,7 @@ Expr *parse_comparison(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = parse_add_sub(context);
-    left = make_binary(left, op, right);
+    left = make_binary(context, left, op, right);
   }
   return left;
 }
@@ -142,7 +143,7 @@ Expr *parse_add_sub(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = parse_mul_div(context);
-    left = make_binary(left, op, right);
+    left = make_binary(context, left, op, right);
   }
   return left;
 }
@@ -153,7 +154,7 @@ Expr *parse_mul_div(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = parse_unary(context);
-    left = make_binary(left, op, right);
+    left = make_binary(context, left, op, right);
   }
   return left;
 }
@@ -163,24 +164,23 @@ Expr *parse_unary(ParseContext *context) {
     TokenKind op = peek(context).kind;
     advance(context);
     Expr *right = parse_unary(context);
-    return make_unary(op, right);
+    return make_unary(context, op, right);
   }
   return parse_atom(context);
 }
 
 Expr *parse_atom(ParseContext *context) {
-  // TODO: Allocate to arena, otherwise this will leak
   if (peek(context).kind == TOK_NUMBER) {
-    return make_expr_number(sv_to_f64(advance(context).lexeme));
+    return make_expr_number(context, sv_to_f64(advance(context).lexeme));
   } else if (
     peek(context).kind == TOK_TRUE ||
     peek(context).kind == TOK_FALSE
   ) {
     bool value = peek(context).kind == TOK_TRUE;
     advance(context);
-    return make_expr_boolean(value);
+    return make_expr_boolean(context, value);
   } else if (peek(context).kind == TOK_STRING) {
-    return make_expr_string(advance(context).lexeme);
+    return make_expr_string(context, advance(context).lexeme);
   }
 
   if (peek(context).kind == TOK_LEFT_PAREN) {

@@ -43,6 +43,7 @@ struct Expr {
 typedef struct {
   TokenArray *tokens;
   LogArray *errors;
+  Arena *arena;
   u32 current;
 } ParseContext;
 
@@ -52,7 +53,7 @@ typedef struct {
   LogArray *errors;
 } ParserResult;
 
-void parser_begin(ParserResult *result, TokenArray *tokens);
+void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena);
 Expr *expr_parse(ParseContext *context);
 void expr_print(Expr *expr);
 Value expr_eval(Expr *expr);
