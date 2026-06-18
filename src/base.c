@@ -30,9 +30,7 @@ void arena_free(Arena *arena) {
 
 void *arena_alloc(Arena *arena, u64 size, u64 align) {
   u64 aligned = align_up(arena->offset, align);
-  if (aligned > arena->capacity || size > arena->capacity - aligned) {
-    return NULL;
-  }
+  assert(aligned <= arena->capacity && size <= arena->capacity - aligned && "arena exhausted");
   void *ptr = (u8*)arena + aligned;
   arena->offset = aligned + size;
   return ptr;
@@ -50,13 +48,15 @@ void *arena_alloc_vformat(Arena *arena, const char *format, va_list args) {
   va_list copy;
   va_copy(copy, args);
 
-  u32 len = vsnprintf(NULL, 0, format, copy);
+  i32 len = vsnprintf(NULL, 0, format, copy);
+  assert(len >= 0 && "arena_alloc_vformat formatting failed");
+
   va_end(copy);
 
   char *buf = arena_alloc(
     arena,
     len + 1,
-    _Alignof(char *)
+    _Alignof(char)
   );
 
   vsnprintf(buf, len + 1, format, args);
@@ -86,7 +86,7 @@ const char *log_level_to_str(LogLevel level) {
 void print_logs(LogArray *logs) {
   for (u32 i = 0; i < logs->size; i++) {
     printf(
-      "%s: %s (line %d)",
+      "%s: %s (line %d)\n",
       log_level_to_str(logs->items[i].level),
       logs->items[i].msg,
       logs->items[i].line
