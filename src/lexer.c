@@ -15,6 +15,7 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_PLUS);
     CASE_STRING(TOK_SLASH);
     CASE_STRING(TOK_STAR);
+    CASE_STRING(TOK_SEMICOLON);
     CASE_STRING(TOK_BANG);
     CASE_STRING(TOK_BANG_EQUAL);
     CASE_STRING(TOK_EQUAL);
@@ -115,6 +116,7 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
     case '+': add_token(&context, TOK_PLUS, advance(&context), 1); break;
     case '-': add_token(&context, TOK_MINUS, advance(&context), 1); break;
     case '*': add_token(&context, TOK_STAR, advance(&context), 1); break;
+    case ';': add_token(&context, TOK_SEMICOLON, advance(&context), 1); break;
     case '/': {
       if (*peek_next(&context) == '/') {
         seek(&context, '\n');

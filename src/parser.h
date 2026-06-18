@@ -40,6 +40,10 @@ struct Expr {
   } as;
 };
 
+typedef enum {
+  STMT_EXPR
+} StmtKind;
+
 typedef struct {
   TokenArray *tokens;
   LogArray *errors;
