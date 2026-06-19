@@ -13,7 +13,7 @@ Expr *parse_add_sub(ParserContext *context);
 Expr *parse_mul_div(ParserContext *context);
 Expr *parse_unary(ParserContext *context);
 Expr *parse_atom(ParserContext *context);
-Stmt parse_statement(ParserContext *context);
+void parse_statement(ParserContext *context, u8 level);
 void parse_program(ParserContext *context);
 
 static Token peek(ParserContext *context) {
@@ -90,6 +90,10 @@ Expr *make_binary(ParserContext *context, Expr *left, TokenKind op, Expr *right)
   return e;
 }
 
+void add_stmt(ParserContext *context, Stmt stmt) {
+  da_append(context->statements, stmt);
+}
+
 Value make_value_number(f64 value) {
   Value v;
   v.kind = VAL_NUMBER;
@@ -130,21 +134,66 @@ void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
 
 void parse_program(ParserContext *context) {
   while (peek(context).kind != TOK_EOF) {
-    Stmt stmt = parse_statement(context);
-    da_append(context->statements, stmt);
+    parse_statement(context, 0);
   }
 }
 
-Stmt parse_statement(ParserContext *context) {
+void parse_statement(ParserContext *context, u8 level) {
   switch (peek(context).kind) {
+  case TOK_LEFT_BRACE: {
+    advance(context);
+    while (peek(context).kind != TOK_RIGHT_BRACE) {
+      if (peek(context).kind == TOK_EOF) {
+        // TODO: When an expression inside a block doesn't end with the statement terminator
+        // and the block ends with a closing brace, the logger will incorrectly report that a
+        // closing brace is missing. This is only cosmetic, but might surprise the user.
+        log_err(context->errors, cur_line(context), "Expected closing brace");
+        add_stmt(context, (Stmt){.kind = STMT_EMPTY});
+        break;
+      }
+      parse_statement(context, level + 1);
+    }
+    if (peek(context).kind != TOK_EOF) advance(context);
+    break;
+  }
+  case TOK_RIGHT_BRACE: {
+    log_err(context->errors, cur_line(context), "Unexpected closing brace with no opening brace");
+    advance(context);
+    break;
+  }
   default: {
     Expr *expr = expr_parse(context);
     expect(context, TOK_SEMICOLON, "Expected ';' after expression");
-    return (Stmt){
+    add_stmt(context, (Stmt){
       .kind = STMT_EXPR,
+      .level = level,
       .as.expr = expr
-    };
+    });
+    break;
   }
+  }
+}
+
+static const char *stmt_kind_to_str(StmtKind kind) {
+  switch (kind) {
+  CASE_STRING(STMT_EMPTY);
+  CASE_STRING(STMT_EXPR);
+  }
+  return "";
+}
+
+void print_stmt_array(StmtArray *array) {
+  for (u32 i = 0; i < array->size; i++) {
+    printf(
+      "%d %s ",
+      array->items[i].level,
+      stmt_kind_to_str(array->items[i].kind)
+    );
+    switch (array->items[i].kind) {
+      case STMT_EMPTY: printf("(empty)"); break;
+      case STMT_EXPR: expr_print(array->items[i].as.expr); break;
+    }
+    printf("\n");
   }
 }
 

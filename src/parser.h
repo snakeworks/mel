@@ -41,10 +41,12 @@ struct Expr {
 };
 
 typedef enum {
+  STMT_EMPTY,
   STMT_EXPR
 } StmtKind;
 
 typedef struct {
+  u8 level;
   StmtKind kind;
   union {
     Expr *expr;
@@ -71,6 +73,7 @@ typedef struct {
 } ParserResult;
 
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena);
+void print_stmt_array(StmtArray *array);
 Expr *expr_parse(ParserContext *context);
 void expr_print(Expr *expr);
 Value expr_eval(Expr *expr);
