@@ -163,6 +163,23 @@ Stmt parse_statement(ParserContext *context) {
     advance(context);
     return (Stmt){.kind = STMT_EMPTY};
   }
+  case TOK_IF: {
+    advance(context);
+    Expr *condition = expr_parse(context);
+    if (condition == NULL) {
+      log_err(context->errors, cur_line(context), "Expected expression");
+      return (Stmt){.kind = STMT_EMPTY};
+    }
+    Stmt *stmt = arena_push(context->arena, Stmt);
+    *stmt = parse_statement(context);
+    return (Stmt) {
+      .kind = STMT_IF,
+      .as.if_branch = {
+        .condition = condition,
+        .body = stmt
+      }
+    };
+  }
   default: {
     Expr *expr = expr_parse(context);
     expect(context, TOK_SEMICOLON, "Expected ';' after expression");
@@ -180,22 +197,34 @@ static const char *stmt_kind_to_str(StmtKind kind) {
   CASE_STRING(STMT_EMPTY);
   CASE_STRING(STMT_EXPR);
   CASE_STRING(STMT_BLOCK);
+  CASE_STRING(STMT_IF);
   }
   return "";
 }
 
+static void print_stmt(Stmt *stmt, u8 indent) {
+  printf(
+    "%*s%s ",
+    indent, "",
+    stmt_kind_to_str(stmt->kind)
+  );
+  switch (stmt->kind) {
+    case STMT_EMPTY: printf("(empty)\n"); break;
+    case STMT_EXPR: expr_print(stmt->as.expr); printf("\n"); break;
+    case STMT_BLOCK: printf("\n"); print_stmt_array(stmt->as.block, indent + 2); break;
+    case STMT_IF: {
+      printf("if ");
+      expr_print(stmt->as.if_branch.condition);
+      printf(" \n");
+      print_stmt(stmt->as.if_branch.body, indent + 2);
+      break;
+    }
+  }
+}
+
 void print_stmt_array(StmtArray *array, u8 indent) {
   for (u32 i = 0; i < array->size; i++) {
-    printf(
-      "%*s%s ",
-      indent, "",
-      stmt_kind_to_str(array->items[i].kind)
-    );
-    switch (array->items[i].kind) {
-      case STMT_EMPTY: printf("(empty)\n"); break;
-      case STMT_EXPR: expr_print(array->items[i].as.expr); printf("\n"); break;
-      case STMT_BLOCK: printf("\n"); print_stmt_array(array->items[i].as.block, indent + 2); break;
-    }
+    print_stmt(&array->items[i], indent);
   }
 }
 

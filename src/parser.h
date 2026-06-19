@@ -44,6 +44,7 @@ typedef enum {
   STMT_EMPTY,
   STMT_EXPR,
   STMT_BLOCK,
+  STMT_IF,
 } StmtKind;
 
 typedef struct Stmt Stmt;
@@ -54,6 +55,7 @@ struct Stmt {
   union {
     Expr *expr;
     StmtArray *block;
+    struct { Expr *condition; Stmt *body; } if_branch;
   } as;
 };
 
