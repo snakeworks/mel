@@ -163,9 +163,6 @@ Stmt parse_statement(ParserContext *context) {
       }
     };
   }
-  case TOK_IDENTIFIER: {
-    advance(context);
-  }
   default: {
     Expr *expr = expr_parse(context);
     expect(context, TOK_SEMICOLON, "Expected ';' after expression");
