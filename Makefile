@@ -6,7 +6,7 @@ all: build/mel
 build:
 	mkdir -p build
 
-build/mel: build/main.o build/base.o build/lexer.o build/parser.o build/program.o
+build/mel: build/main.o build/base.o build/lexer.o build/parser.o build/interpreter.o build/program.o
 	$(CC) $(CFLAGS) $^ -o build/mel
 
 build/main.o: src/main.c | build
@@ -14,6 +14,9 @@ build/main.o: src/main.c | build
 
 build/program.o: src/program.c src/program.h | build
 	$(CC) $(CFLAGS) -c src/program.c -o $@
+
+build/interpreter.o: src/interpreter.c src/interpreter.h | build
+	$(CC) $(CFLAGS) -c src/interpreter.c -o $@
 
 build/parser.o: src/parser.c src/parser.h | build
 	$(CC) $(CFLAGS) -c src/parser.c -o $@

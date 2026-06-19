@@ -1,14 +1,17 @@
 #include "program.h"
 #include "lexer.h"
 #include "parser.h"
+#include "interpreter.h"
 #include <stdio.h>
 
 void program_run(const char *source) {
   Arena *arena = arena_init(1024 * 1000); // 1 MB
   LexerResult lexer_result = {0};
   ParserResult parser_result = {0};
+  InterpreterResult interpreter_result = {0};
 
   lexer_begin(&lexer_result, source, arena);
+  print_token_array(lexer_result.tokens);
 
   if (lexer_result.errors->size > 0) {
     print_logs(lexer_result.errors);
@@ -23,6 +26,8 @@ void program_run(const char *source) {
   }
 
   print_stmt_array(parser_result.statements, 0);
+
+  interpreter_begin(&interpreter_result, parser_result.statements);
 
 cleanup:
   if (arena != NULL) arena_free(arena);

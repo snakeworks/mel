@@ -82,7 +82,6 @@ void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena);
 void print_stmt_array(StmtArray *array, u8 indent);
 Expr *expr_parse(ParserContext *context);
 void expr_print(Expr *expr);
-Value expr_eval(Expr *expr);
 void value_print(Value value);
 
 #endif

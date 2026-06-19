@@ -20,6 +20,10 @@ static Token peek(ParserContext *context) {
   return context->tokens->items[context->current];
 }
 
+static Token peek_next(ParserContext *context) {
+  return context->tokens->items[context->current + 1];
+}
+
 static u32 cur_line(ParserContext *context) {
   return context->tokens->items[context->current].line + 1;
 }
@@ -90,27 +94,6 @@ Expr *make_binary(ParserContext *context, Expr *left, TokenKind op, Expr *right)
   return e;
 }
 
-Value make_value_number(f64 value) {
-  Value v;
-  v.kind = VAL_NUMBER;
-  v.as.number = value;
-  return v;
-}
-
-Value make_value_boolean(bool value) {
-  Value v;
-  v.kind = VAL_BOOLEAN;
-  v.as.boolean = value;
-  return v;
-}
-
-Value make_value_string(StringView value) {
-  Value v;
-  v.kind = VAL_STRING;
-  v.as.string = value;
-  return v;
-}
-
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
   StmtArray *statements = malloc(sizeof(StmtArray));
   result->statements = statements;
@@ -179,6 +162,9 @@ Stmt parse_statement(ParserContext *context) {
         .body = stmt
       }
     };
+  }
+  case TOK_IDENTIFIER: {
+    advance(context);
   }
   default: {
     Expr *expr = expr_parse(context);
@@ -326,22 +312,6 @@ static const char* op_string(TokenKind t) {
   }
 }
 
-void value_print(Value value) {
-  switch (value.kind) {
-  case VAL_NUMBER:
-    printf("%g", value.as.number);
-    break;
-  case VAL_BOOLEAN:
-    printf(value.as.boolean ? "true" : "false");
-    break;
-  case VAL_STRING:
-    printf(SV_FMT, SV_ARG(value.as.string));
-    break;
-  case VAL_NULL:
-    printf("null");
-    break;
-  }
-}
 
 void expr_print(Expr *e) {
   switch (e->kind) {
@@ -365,70 +335,3 @@ void expr_print(Expr *e) {
   }
 }
 
-// TODO: Eval logic probably shouldn't be in parser
-Value expr_eval(Expr *expr) {
-  if (expr == NULL) {
-    return NULL_VALUE;
-  }
-
-  switch (expr->kind) {
-  case EXPR_VALUE:
-    return expr->as.value;
-  case EXPR_UNARY: {
-    Value v = expr_eval(expr->as.unary.right);
-    if (expr->as.unary.op == TOK_MINUS) {
-      return make_value_number(-v.as.number);
-    }
-    return v;
-  }
-  case EXPR_BINARY: {
-    Value l = expr_eval(expr->as.binary.left);
-    Value r = expr_eval(expr->as.binary.right);
-
-    assert(l.kind == r.kind); // TODO: Will cause problems later
-
-    switch (l.kind) {
-    case VAL_NUMBER: {
-      switch (expr->as.binary.op) {
-      case TOK_PLUS: return make_value_number(l.as.number + r.as.number);
-      case TOK_MINUS: return make_value_number(l.as.number - r.as.number);
-      case TOK_STAR: return make_value_number(l.as.number * r.as.number);
-      case TOK_SLASH: return make_value_number(l.as.number / r.as.number);
-      case TOK_LESS: return make_value_boolean(l.as.number < r.as.number);
-      case TOK_LESS_EQUAL: return make_value_boolean(l.as.number <= r.as.number);
-      case TOK_DOUBLE_EQUAL: return make_value_boolean(l.as.number == r.as.number);
-      case TOK_BANG_EQUAL: return make_value_boolean(l.as.number != r.as.number);
-      case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
-      case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
-      default: return make_value_number(0.0);
-      }
-    }
-    case VAL_BOOLEAN:
-      switch (expr->as.binary.op) {
-      case TOK_LESS: return make_value_boolean(l.as.boolean < r.as.boolean);
-      case TOK_LESS_EQUAL: return make_value_boolean(l.as.boolean <= r.as.boolean);
-      case TOK_DOUBLE_EQUAL: return make_value_boolean(l.as.boolean == r.as.boolean);
-      case TOK_BANG_EQUAL: return make_value_boolean(l.as.boolean != r.as.boolean);
-      case TOK_GREATER: return make_value_boolean(l.as.boolean > r.as.boolean);
-      case TOK_GREATER_EQUAL: return make_value_boolean(l.as.boolean >= r.as.boolean);
-      default: return make_value_boolean(false);
-      }
-      break;
-    case VAL_STRING:
-      switch (expr->as.binary.op) {
-      case TOK_DOUBLE_EQUAL: return make_value_boolean(sv_is_equal(l.as.string, r.as.string));
-      case TOK_BANG_EQUAL: return make_value_boolean(!sv_is_equal(l.as.string, r.as.string));
-      default: return NULL_VALUE;
-      }
-      break;
-    case VAL_NULL:
-      // TODO: Implement
-      break;
-    }
-    break;
-  }
-  default:
-    return NULL_VALUE;
-  }
-  return NULL_VALUE;
-}
