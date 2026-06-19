@@ -1,13 +1,13 @@
 CC = cc
 CFLAGS = -g -Wall -Wextra
 
-all: build/main
+all: build/mel
 
 build:
 	mkdir -p build
 
-build/main: build/main.o build/base.o build/lexer.o build/parser.o build/program.o
-	$(CC) $(CFLAGS) $^ -o build/main
+build/mel: build/main.o build/base.o build/lexer.o build/parser.o build/program.o
+	$(CC) $(CFLAGS) $^ -o build/mel
 
 build/main.o: src/main.c | build
 	$(CC) $(CFLAGS) -c src/main.c -o $@
