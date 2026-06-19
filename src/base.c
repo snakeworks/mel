@@ -56,7 +56,7 @@ void *arena_alloc_vformat(Arena *arena, const char *format, va_list args) {
   char *buf = arena_alloc(
     arena,
     len + 1,
-    _Alignof(char)
+    alignof(char)
   );
 
   vsnprintf(buf, len + 1, format, args);

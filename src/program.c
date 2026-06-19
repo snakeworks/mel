@@ -22,7 +22,7 @@ void program_run(const char *source) {
     goto cleanup;
   }
 
-  print_stmt_array(parser_result.statements);
+  print_stmt_array(parser_result.statements, 0);
 
 cleanup:
   if (arena != NULL) arena_free(arena);

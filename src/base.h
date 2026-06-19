@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdalign.h>
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -41,6 +42,18 @@
     (array)->capacity = 0;                                                     \
   } while (false)
 
+  #define da_copy_to_arena(dest, src, arena, T)                               \
+    do {                                                                       \
+      (dest) = arena_alloc((arena), sizeof(T), alignof(T));                    \
+      (dest)->size = (src)->size;                                             \
+      (dest)->capacity = (src)->size;                                         \
+      (dest)->items = arena_alloc((arena),                                      \
+          (src)->size * sizeof(*(src)->items),                             \
+          alignof(*(src)->items));                                          \
+      memcpy((dest)->items, (src)->items,                                     \
+          (src)->size * sizeof(*(src)->items));                            \
+    } while (false)
+
 #define CASE_STRING(val)                                                       \
   case val:                                                                    \
     return #val
@@ -75,7 +88,7 @@ typedef struct {
 #define SV_FMT "%.*s"
 #define SV_ARG(sv) (int) (sv).length, (sv).start
 
-#define arena_push(arena, T) ((T *)arena_alloc(arena, sizeof(T), _Alignof(T)))
+#define arena_push(arena, T) ((T *)arena_alloc(arena, sizeof(T), alignof(T)))
 
 Arena *arena_init(u64 size);
 void arena_free(Arena *arena);
