@@ -28,6 +28,16 @@ static Token advance(ParserContext *context) {
   return context->tokens->items[context->current++];
 }
 
+static bool seek(ParserContext *context, TokenKind token) {
+  while (peek(context).kind != token) {
+    if (peek(context).kind == TOK_EOF) {
+      return false;
+    }
+    advance(context);
+  }
+  return true;
+}
+
 static Token expect(ParserContext *context, TokenKind token, const char *msg, ...) {
   if (peek(context).kind == token) return advance(context);
   va_list list;
@@ -35,6 +45,7 @@ static Token expect(ParserContext *context, TokenKind token, const char *msg, ..
   char *ptr = arena_alloc_vformat(context->arena, msg, list);
   va_end(list);
   log_err(context->errors, cur_line(context), ptr);
+  if (seek(context, TOK_SEMICOLON)) advance(context);
   return peek(context);
 }
 

@@ -2,7 +2,7 @@
 #include "program.h"
 
 i32 main(void) {
-  const char *sample_source = "10 + 2.";
+  const char *sample_source = "10 + 2.5;";
 
   program_run(sample_source);
 
