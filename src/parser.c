@@ -141,17 +141,14 @@ Stmt parse_statement(ParserContext *context) {
     advance(context);
     StmtArray *block = malloc(sizeof(StmtArray));
     da_init(block, 8);
-    while (peek(context).kind != TOK_RIGHT_BRACE) {
-      if (peek(context).kind == TOK_EOF) {
-        // TODO: When an expression inside a block doesn't end with the statement terminator
-        // and the block ends with a closing brace, the logger will incorrectly report that a
-        // closing brace is missing. This is only cosmetic, but might surprise the user.
-        log_err(context->errors, cur_line(context), "Expected closing brace");
-        return (Stmt){.kind = STMT_EMPTY};
-      }
+    while (peek(context).kind != TOK_RIGHT_BRACE && peek(context).kind != TOK_EOF) {
       da_append(block, parse_statement(context));
     }
-    if (peek(context).kind != TOK_EOF) advance(context);
+    if (peek(context).kind == TOK_RIGHT_BRACE) {
+      advance(context);
+    } else {
+      log_err(context->errors, cur_line(context), "Expected closing brace");
+    }
     StmtArray *block_arena_copy;
     da_copy_to_arena(block_arena_copy, block, context->arena, StmtArray);
     da_free(block);
