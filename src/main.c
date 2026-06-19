@@ -12,7 +12,6 @@ void print_usage() {
 char *read_entire_file(const char *filepath) {
   FILE *f = fopen(filepath, "rb");
   if (f == NULL) {
-    printf("Failed to open file\n");
     return NULL;
   }
   fseek(f, 0, SEEK_END);
@@ -33,6 +32,11 @@ i32 main(i32 argc, char **argv) {
   }
 
   char *source = read_entire_file(argv[1]);
+  if (source == NULL) {
+    printf("Failed to open file\n");
+    return 1;
+  }
+
   program_run(source);
 
   return 0;
