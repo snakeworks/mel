@@ -99,6 +99,12 @@ bool sv_is_equal(StringView sv1, StringView sv2) {
   return memcmp(sv1.start, sv2.start, sv1.length) == 0;
 }
 
+bool sv_is_equal_to_cstr(StringView sv, const char *cstr) {
+  i32 clen = strlen(cstr);
+  if (sv.length != clen) return false;
+  return memcmp(sv.start, cstr, clen) == 0;
+}
+
 f64 sv_to_f64(StringView sv) {
   char cstr[sv.length + 1];
   strncpy(cstr, sv.start, sv.length);

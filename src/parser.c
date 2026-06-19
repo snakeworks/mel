@@ -12,6 +12,7 @@ Expr *parse_comparison(ParserContext *context);
 Expr *parse_add_sub(ParserContext *context);
 Expr *parse_mul_div(ParserContext *context);
 Expr *parse_unary(ParserContext *context);
+Expr *parse_call(ParserContext *context);
 Expr *parse_atom(ParserContext *context);
 Stmt parse_statement(ParserContext *context);
 void parse_program(ParserContext *context);
@@ -91,6 +92,21 @@ Expr *make_binary(ParserContext *context, Expr *left, TokenKind op, Expr *right)
   e->as.binary.left = left;
   e->as.binary.op = op;
   e->as.binary.right = right;
+  return e;
+}
+
+Expr *make_identifier(ParserContext *context, StringView name) {
+  Expr *e = arena_push(context->arena, Expr);
+  e->kind = EXPR_IDENTIFIER;
+  e->as.identifier = name;
+  return e;
+}
+
+Expr *make_call(ParserContext *context, Expr *callee, ExprArray *args) {
+  Expr *e = arena_push(context->arena, Expr);
+  e->kind = EXPR_CALL;
+  e->as.call.callee = callee;
+  e->as.call.args = args;
   return e;
 }
 
@@ -267,7 +283,26 @@ Expr *parse_unary(ParserContext *context) {
     Expr *right = parse_unary(context);
     return make_unary(context, op, right);
   }
-  return parse_atom(context);
+  return parse_call(context);
+}
+
+Expr *parse_call(ParserContext *context) {
+  Expr *expr = parse_atom(context);
+  if (expr->kind != EXPR_IDENTIFIER) {
+    return expr;
+  }
+  ExprArray *args = malloc(sizeof(ExprArray));
+  da_init(args, 4);
+  while (
+    peek(context).kind == TOK_LEFT_PAREN ||
+    peek(context).kind == TOK_COMMA
+  ) {
+    advance(context);
+    Expr *arg = parse_expr_start(context);
+    da_append(args, arg);
+  }
+  expect(context, TOK_RIGHT_PAREN, "Expected closing parenthesis");
+  return make_call(context, expr, args);
 }
 
 Expr *parse_atom(ParserContext *context) {
@@ -282,6 +317,8 @@ Expr *parse_atom(ParserContext *context) {
     return make_expr_boolean(context, value);
   } else if (peek(context).kind == TOK_STRING) {
     return make_expr_string(context, advance(context).lexeme);
+  } else if (peek(context).kind == TOK_IDENTIFIER) {
+    return make_identifier(context, advance(context).lexeme);
   }
 
   if (peek(context).kind == TOK_LEFT_PAREN) {
@@ -309,11 +346,13 @@ static const char* op_string(TokenKind t) {
   }
 }
 
-
 void expr_print(Expr *e) {
   switch (e->kind) {
   case EXPR_VALUE:
     value_print(e->as.value);
+    break;
+  case EXPR_IDENTIFIER:
+    printf(SV_FMT, SV_ARG(e->as.identifier));
     break;
   case EXPR_BINARY:
     printf("(%s ", op_string(e->as.binary.op));
@@ -325,6 +364,17 @@ void expr_print(Expr *e) {
   case EXPR_UNARY:
     printf("(%s ", op_string(e->as.unary.op));
     expr_print(e->as.unary.right);
+    printf(")");
+    break;
+  case EXPR_CALL:
+    expr_print(e->as.call.callee);
+    printf("(");
+    for (u32 i = 0; i < e->as.call.args->size; i++) {
+      expr_print(e->as.call.args->items[i]);
+      if (i < e->as.call.args->size-1) {
+        printf(", ");
+      }
+    }
     printf(")");
     break;
   default:

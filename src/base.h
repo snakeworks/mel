@@ -101,6 +101,7 @@ void log_fatal(LogArray *logs, u32 line, const char *msg);
 void print_logs(LogArray *logs);
 
 bool sv_is_equal(StringView sv1, StringView sv2);
+bool sv_is_equal_to_cstr(StringView sv, const char *cstr);
 f64 sv_to_f64(StringView sv);
 
 #endif

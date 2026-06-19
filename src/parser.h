@@ -24,19 +24,28 @@ static const Value NULL_VALUE = {.kind = VAL_NULL};
 
 typedef enum {
   EXPR_VALUE,
+  EXPR_IDENTIFIER,
   EXPR_UNARY,
   EXPR_BINARY,
+  EXPR_CALL
 } ExprKind;
 
 typedef struct Expr Expr;
+
+typedef struct {
+  Expr **items;
+  u32 capacity;
+  u32 size;
+} ExprArray;
 
 struct Expr {
   ExprKind kind;
   union {
     Value value;
+    StringView identifier;
     struct { TokenKind op; Expr *right; } unary;
     struct { Expr *left; TokenKind op; Expr *right; } binary;
-    struct { Expr *inner; } group;
+    struct { Expr *callee; ExprArray *args; } call;
   } as;
 };
 

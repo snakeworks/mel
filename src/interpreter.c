@@ -2,6 +2,7 @@
 #include "parser.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 static Value make_value_number(f64 value) {
   Value v;
@@ -129,8 +130,19 @@ static void stmt_exec(Stmt stmt) {
   case STMT_EMPTY:
     break;
   case STMT_EXPR: {
-    // TODO: Idk? What does a statement expression even supposed to do?
-    Value value = eval_expr(stmt.as.expr);
+    switch (stmt.as.expr->kind) {
+    case EXPR_CALL:
+      if (sv_is_equal_to_cstr(
+        stmt.as.expr->as.call.callee->as.identifier,
+        "print"
+      )) {
+        Value value = eval_expr(stmt.as.expr->as.call.args->items[0]);
+        value_print(value);
+      }
+      break;
+    default:
+      break;
+    }
     break;
   }
   case STMT_BLOCK:
