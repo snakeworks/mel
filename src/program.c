@@ -13,7 +13,6 @@ void program_run(const char *source) {
   if (lexer_result.errors->size > 0) {
     print_logs(lexer_result.errors);
     goto cleanup;
-    return;
   }
 
   print_token_array(lexer_result.tokens);
@@ -23,7 +22,6 @@ void program_run(const char *source) {
   if (parser_result.errors->size > 0) {
     print_logs(parser_result.errors);
     goto cleanup;
-    return;
   }
 
   printf("%d\n", parser_result.statements->items[0].kind);
