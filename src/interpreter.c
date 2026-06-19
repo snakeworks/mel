@@ -1,7 +1,6 @@
 #include "interpreter.h"
 #include "parser.h"
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 
 static Value make_value_number(f64 value) {
@@ -23,23 +22,6 @@ static Value make_value_string(StringView value) {
   v.kind = VAL_STRING;
   v.as.string = value;
   return v;
-}
-
-void value_print(Value value) {
-  switch (value.kind) {
-  case VAL_NUMBER:
-    printf("%g", value.as.number);
-    break;
-  case VAL_BOOLEAN:
-    printf(value.as.boolean ? "true" : "false");
-    break;
-  case VAL_STRING:
-    printf(SV_FMT, SV_ARG(value.as.string));
-    break;
-  case VAL_NULL:
-    printf("null");
-    break;
-  }
 }
 
 static Value eval_expr(Expr *expr) {
@@ -103,6 +85,23 @@ static Value eval_expr(Expr *expr) {
     }
     break;
   }
+  case EXPR_CALL: {
+    if (
+      sv_is_equal_to_cstr(
+        expr->as.call.callee->as.identifier,
+        "print"
+      )
+    ) {
+      Expr *msg = expr->as.call.args->items[0];
+      if (msg == NULL) {
+        return NULL_VALUE;
+      }
+      Value value = eval_expr(msg);
+      print_value(value);
+      return NULL_VALUE;
+    }
+    return NULL_VALUE;
+  }
   default:
     return NULL_VALUE;
   }
@@ -125,28 +124,12 @@ static bool is_truthy(Value value) {
   return false;
 }
 
-static void handle_call(Stmt stmt) {
-  switch (stmt.as.expr->kind) {
-  case EXPR_CALL:
-    if (sv_is_equal_to_cstr(
-      stmt.as.expr->as.call.callee->as.identifier,
-      "print"
-    )) {
-      Value value = eval_expr(stmt.as.expr->as.call.args->items[0]);
-      value_print(value);
-    }
-    break;
-  default:
-    break;
-  }
-}
-
 static void stmt_exec(Stmt stmt) {
   switch (stmt.kind) {
   case STMT_EMPTY:
     break;
   case STMT_EXPR: {
-    handle_call(stmt);
+    eval_expr(stmt.as.expr);
     break;
   }
   case STMT_BLOCK:

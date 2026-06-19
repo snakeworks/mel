@@ -100,7 +100,7 @@ bool sv_is_equal(StringView sv1, StringView sv2) {
 }
 
 bool sv_is_equal_to_cstr(StringView sv, const char *cstr) {
-  i32 clen = strlen(cstr);
+  u32 clen = strlen(cstr);
   if (sv.length != clen) return false;
   return memcmp(sv.start, cstr, clen) == 0;
 }

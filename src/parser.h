@@ -89,8 +89,7 @@ typedef struct {
 
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena);
 void print_stmt_array(StmtArray *array, u8 indent);
-Expr *expr_parse(ParserContext *context);
-void expr_print(Expr *expr);
-void value_print(Value value);
+void print_expr(Expr *expr);
+void print_value(Value value);
 
 #endif
