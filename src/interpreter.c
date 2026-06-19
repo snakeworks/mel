@@ -92,10 +92,10 @@ static Value eval_expr(Expr *expr) {
         "print"
       )
     ) {
-      Expr *msg = expr->as.call.args->items[0];
-      if (msg == NULL) {
+      if (expr->as.call.args->size != 1) {
         return NULL_VALUE;
       }
+      Expr *msg = expr->as.call.args->items[0];
       Value value = eval_expr(msg);
       print_value(value);
       return NULL_VALUE;
