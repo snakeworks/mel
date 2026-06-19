@@ -125,24 +125,28 @@ static bool is_truthy(Value value) {
   return false;
 }
 
+static void handle_call(Stmt stmt) {
+  switch (stmt.as.expr->kind) {
+  case EXPR_CALL:
+    if (sv_is_equal_to_cstr(
+      stmt.as.expr->as.call.callee->as.identifier,
+      "print"
+    )) {
+      Value value = eval_expr(stmt.as.expr->as.call.args->items[0]);
+      value_print(value);
+    }
+    break;
+  default:
+    break;
+  }
+}
+
 static void stmt_exec(Stmt stmt) {
   switch (stmt.kind) {
   case STMT_EMPTY:
     break;
   case STMT_EXPR: {
-    switch (stmt.as.expr->kind) {
-    case EXPR_CALL:
-      if (sv_is_equal_to_cstr(
-        stmt.as.expr->as.call.callee->as.identifier,
-        "print"
-      )) {
-        Value value = eval_expr(stmt.as.expr->as.call.args->items[0]);
-        value_print(value);
-      }
-      break;
-    default:
-      break;
-    }
+    handle_call(stmt);
     break;
   }
   case STMT_BLOCK:

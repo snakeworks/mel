@@ -288,21 +288,32 @@ Expr *parse_unary(ParserContext *context) {
 
 Expr *parse_call(ParserContext *context) {
   Expr *expr = parse_atom(context);
-  if (expr->kind != EXPR_IDENTIFIER) {
-    return expr;
+  if (expr == NULL) {
+    return NULL;
   }
-  ExprArray *args = malloc(sizeof(ExprArray));
-  da_init(args, 4);
-  while (
-    peek(context).kind == TOK_LEFT_PAREN ||
-    peek(context).kind == TOK_COMMA
-  ) {
+
+  while (peek(context).kind == TOK_LEFT_PAREN) {
     advance(context);
-    Expr *arg = parse_expr_start(context);
-    da_append(args, arg);
+
+    ExprArray *args = malloc(sizeof(ExprArray));
+    da_init(args, 4);
+
+    if (peek(context).kind != TOK_RIGHT_PAREN) {
+      do {
+        da_append(args, parse_expr_start(context));
+      } while (peek(context).kind == TOK_COMMA && (advance(context), true));
+    }
+
+    expect(context, TOK_RIGHT_PAREN, "Expected ')' after arguments");
+
+    ExprArray *args_copy;
+    da_copy_to_arena(args_copy, args, context->arena, ExprArray);
+    da_free(args);
+    free(args);
+
+    expr = make_call(context, expr, args_copy);
   }
-  expect(context, TOK_RIGHT_PAREN, "Expected closing parenthesis");
-  return make_call(context, expr, args);
+  return expr;
 }
 
 Expr *parse_atom(ParserContext *context) {
