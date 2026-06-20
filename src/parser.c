@@ -118,6 +118,15 @@ Expr *make_call(ParserContext *context, Expr *callee, ExprArray *args) {
   return e;
 }
 
+Expr *make_iter(ParserContext *context, StringView el_identifier, Expr *iterable) {
+  Expr *e = arena_push(context->arena, Expr);
+  e->kind = EXPR_ITER;
+  e->as.iter.el_identifier = el_identifier;
+  e->as.iter.iterable = iterable;
+  e->as.iter.cur_index = 0;
+  return e;
+}
+
 void parser_begin(ParserResult *result, TokenArray *tokens, Arena *arena) {
   StmtArray *statements = malloc(sizeof(StmtArray));
   result->statements = statements;
@@ -379,6 +388,12 @@ Expr *parse_atom(ParserContext *context) {
   } else if (peek(context).kind == TOK_STRING) {
     return make_expr_string(context, advance(context).lexeme);
   } else if (peek(context).kind == TOK_IDENTIFIER) {
+    if (peek_next(context).kind == TOK_IN) {
+      StringView el_identifier = advance(context).lexeme;
+      advance(context);
+      Expr *iterable = parse_expr(context);
+      return make_iter(context, el_identifier, iterable);
+    }
     return make_identifier(context, advance(context).lexeme);
   } else if (peek(context).kind == TOK_LEFT_BRACKET) {
     advance(context);
@@ -484,6 +499,10 @@ void print_expr(Expr *e) {
       }
     }
     printf(")");
+    break;
+  case EXPR_ITER:
+    printf(SV_FMT" in ", SV_ARG(e->as.iter.el_identifier));
+    print_expr(e->as.iter.iterable);
     break;
   default:
     break;

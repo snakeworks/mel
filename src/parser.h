@@ -32,7 +32,8 @@ typedef enum {
   EXPR_IDENTIFIER,
   EXPR_UNARY,
   EXPR_BINARY,
-  EXPR_CALL
+  EXPR_CALL,
+  EXPR_ITER,
 } ExprKind;
 
 struct ExprArray {
@@ -49,6 +50,7 @@ struct Expr {
     struct { TokenKind op; Expr *right; } unary;
     struct { Expr *left; TokenKind op; Expr *right; } binary;
     struct { Expr *callee; ExprArray *args; } call;
+    struct { StringView el_identifier; Expr *iterable; u64 cur_index; } iter;
   } as;
 };
 

@@ -40,6 +40,7 @@ typedef enum {
   TOK_FALSE,
   TOK_FUNC,
   TOK_FOR,
+  TOK_IN,
   TOK_NULL,
   TOK_RETURN,
 

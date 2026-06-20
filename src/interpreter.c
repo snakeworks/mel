@@ -55,6 +55,47 @@ static void set_binding(InterpreterContext *context, StringView identifier, Valu
   }
 }
 
+static Value eval_expr(InterpreterContext *context, Expr *expr);
+
+static Value eval_value_subscript(InterpreterContext *context, Value value, u64 index) {
+  switch (value.type) {
+  case TYPE_ARRAY:
+    if (index < value.as.array->size) {
+      return eval_expr(context, value.as.array->items[index]);
+    }
+    return NULL_VALUE;
+  case TYPE_NUMBER:
+    if (index < value.as.number) {
+      return make_value_number(index);
+    }
+    return NULL_VALUE;
+  case TYPE_BOOLEAN:
+  case TYPE_STRING:
+  case TYPE_NULL:
+    return NULL_VALUE;
+  }
+  return NULL_VALUE;
+}
+
+static Value eval_expr_subscript(InterpreterContext *context, Expr *expr, u64 index) {
+  switch (expr->kind) {
+  case EXPR_VALUE: return eval_value_subscript(context, expr->as.value, index);
+  case EXPR_IDENTIFIER: {
+    Binding *binding = get_binding(context, expr->as.identifier);
+    if (binding == NULL) {
+      return NULL_VALUE;
+    }
+    return eval_value_subscript(context, binding->value, index);
+  }
+  case EXPR_UNARY:
+  case EXPR_BINARY:
+  case EXPR_CALL:
+  case EXPR_ITER:
+    return NULL_VALUE;
+  }
+  return NULL_VALUE;
+}
+
 static Value eval_expr(InterpreterContext *context, Expr *expr) {
   if (expr == NULL) {
     return NULL_VALUE;
@@ -144,6 +185,14 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
     }
 
     return NULL_VALUE;
+  }
+  case EXPR_ITER: {
+    Value subscript = eval_expr_subscript(context, expr->as.iter.iterable, expr->as.iter.cur_index++);
+    if (subscript.type == TYPE_NULL) {
+      return make_value_boolean(false);
+    }
+    set_binding(context, expr->as.iter.el_identifier, subscript);
+    return make_value_boolean(true);
   }
   default:
     return NULL_VALUE;

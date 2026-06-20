@@ -38,6 +38,7 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_FALSE);
     CASE_STRING(TOK_FUNC);
     CASE_STRING(TOK_FOR);
+    CASE_STRING(TOK_IN);
     CASE_STRING(TOK_NULL);
     CASE_STRING(TOK_RETURN);
     CASE_STRING(TOK_EOF);
@@ -95,6 +96,7 @@ TokenKind str_to_identifier_kind(const char *start, u32 length) {
   else if (kw_is_equal(start, "false", length)) return TOK_FALSE;
   else if (kw_is_equal(start, "func", length)) return TOK_FUNC;
   else if (kw_is_equal(start, "for", length)) return TOK_FOR;
+  else if (kw_is_equal(start, "in", length)) return TOK_IN;
   else if (kw_is_equal(start, "null", length)) return TOK_NULL;
   else if (kw_is_equal(start, "return", length)) return TOK_RETURN;
   return TOK_IDENTIFIER;

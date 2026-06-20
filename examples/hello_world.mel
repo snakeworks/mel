@@ -1,2 +1,5 @@
 a = [1, 2, 4, 6];
-println(a);
+for i in a {
+  println(i);
+}
+
