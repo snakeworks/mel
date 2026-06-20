@@ -5,14 +5,14 @@
 #include "lexer.h"
 
 typedef enum {
-  VAL_NUMBER,
-  VAL_BOOLEAN,
-  VAL_STRING,
-  VAL_NULL,
-} ValueKind;
+  TYPE_NUMBER,
+  TYPE_BOOLEAN,
+  TYPE_STRING,
+  TYPE_NULL,
+} Type;
 
 typedef struct {
-  ValueKind kind;
+  Type type;
   union {
     f64 number;
     bool boolean;
@@ -20,7 +20,7 @@ typedef struct {
   } as;
 } Value;
 
-static const Value NULL_VALUE = {.kind = VAL_NULL};
+static const Value NULL_VALUE = {.type = TYPE_NULL};
 
 typedef enum {
   EXPR_VALUE,

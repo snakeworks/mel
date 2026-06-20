@@ -18,7 +18,7 @@ Value native_min(Value *args, u32 count) {
     return NULL_VALUE;
   }
 
-  if (args[0].kind != VAL_NUMBER || args[1].kind != VAL_NUMBER) {
+  if (args[0].type != TYPE_NUMBER || args[1].type != TYPE_NUMBER) {
     return NULL_VALUE;
   }
 
@@ -30,7 +30,7 @@ Value native_max(Value *args, u32 count) {
     return NULL_VALUE;
   }
 
-  if (args[0].kind != VAL_NUMBER || args[1].kind != VAL_NUMBER) {
+  if (args[0].type != TYPE_NUMBER || args[1].type != TYPE_NUMBER) {
     return NULL_VALUE;
   }
 

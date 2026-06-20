@@ -1,4 +1,5 @@
 #include "interpreter.h"
+#include "base.h"
 #include "native.h"
 #include "parser.h"
 #include <assert.h>
@@ -8,26 +9,53 @@
 
 static Value make_value_number(f64 value) {
   Value v;
-  v.kind = VAL_NUMBER;
+  v.type = TYPE_NUMBER;
   v.as.number = value;
   return v;
 }
 
 static Value make_value_boolean(bool value) {
   Value v;
-  v.kind = VAL_BOOLEAN;
+  v.type = TYPE_BOOLEAN;
   v.as.boolean = value;
   return v;
 }
 
 static Value make_value_string(StringView value) {
   Value v;
-  v.kind = VAL_STRING;
+  v.type = TYPE_STRING;
   v.as.string = value;
   return v;
 }
 
-static Value eval_expr(Expr *expr) {
+static Binding *get_binding(InterpreterContext *context, StringView identifier) {
+  for (u32 i = 0; i < context->bindings->size; i++) {
+    if (
+      sv_is_equal(
+        context->bindings->items[i].identifier,
+        identifier
+      )
+    ) {
+      return &context->bindings->items[i];
+    }
+  }
+  return NULL;
+}
+
+static void set_binding(InterpreterContext *context, StringView identifier, Value value) {
+  Binding *existing = get_binding(context, identifier);
+  if (existing != NULL) {
+    existing->value = value;
+  } else {
+    Binding binding = {
+      .identifier = identifier,
+      .value = value
+    };
+    da_append(context->bindings, binding);
+  }
+}
+
+static Value eval_expr(InterpreterContext *context, Expr *expr) {
   if (expr == NULL) {
     return NULL_VALUE;
   }
@@ -35,21 +63,25 @@ static Value eval_expr(Expr *expr) {
   switch (expr->kind) {
   case EXPR_VALUE:
     return expr->as.value;
+  case EXPR_IDENTIFIER: {
+    Binding *binding = get_binding(context, expr->as.identifier);
+    return binding->value;
+  }
   case EXPR_UNARY: {
-    Value v = eval_expr(expr->as.unary.right);
+    Value v = eval_expr(context, expr->as.unary.right);
     if (expr->as.unary.op == TOK_MINUS) {
       return make_value_number(-v.as.number);
     }
     return v;
   }
   case EXPR_BINARY: {
-    Value l = eval_expr(expr->as.binary.left);
-    Value r = eval_expr(expr->as.binary.right);
+    Value l = eval_expr(context, expr->as.binary.left);
+    Value r = eval_expr(context, expr->as.binary.right);
 
-    assert(l.kind == r.kind); // TODO: Will cause problems later
+    assert(l.type == r.type); // TODO: Will cause problems later
 
-    switch (l.kind) {
-    case VAL_NUMBER: {
+    switch (l.type) {
+    case TYPE_NUMBER: {
       switch (expr->as.binary.op) {
       case TOK_PLUS: return make_value_number(l.as.number + r.as.number);
       case TOK_MINUS: return make_value_number(l.as.number - r.as.number);
@@ -64,7 +96,7 @@ static Value eval_expr(Expr *expr) {
       default: return make_value_number(0.0);
       }
     }
-    case VAL_BOOLEAN:
+    case TYPE_BOOLEAN:
       switch (expr->as.binary.op) {
       case TOK_LESS: return make_value_boolean(l.as.boolean < r.as.boolean);
       case TOK_LESS_EQUAL: return make_value_boolean(l.as.boolean <= r.as.boolean);
@@ -75,14 +107,14 @@ static Value eval_expr(Expr *expr) {
       default: return make_value_boolean(false);
       }
       break;
-    case VAL_STRING:
+    case TYPE_STRING:
       switch (expr->as.binary.op) {
       case TOK_DOUBLE_EQUAL: return make_value_boolean(sv_is_equal(l.as.string, r.as.string));
       case TOK_BANG_EQUAL: return make_value_boolean(!sv_is_equal(l.as.string, r.as.string));
       default: return NULL_VALUE;
       }
       break;
-    case VAL_NULL:
+    case TYPE_NULL:
       // TODO: Implement
       break;
     }
@@ -102,7 +134,7 @@ static Value eval_expr(Expr *expr) {
 
       Value values[MAX_ARGS];
       for (u32 i = 0; i < count; i++) {
-        values[i] = eval_expr(expr->as.call.args->items[i]);
+        values[i] = eval_expr(context, expr->as.call.args->items[i]);
       }
 
       return fn(values, count);
@@ -116,54 +148,68 @@ static Value eval_expr(Expr *expr) {
   return NULL_VALUE;
 }
 
-static void stmt_exec(Stmt stmt);
-static void stmt_array_exec(StmtArray *array);
+static void stmt_exec(InterpreterContext *context, Stmt stmt);
+static void stmt_array_exec(InterpreterContext *context, StmtArray *array);
 
 static bool is_truthy(Value value) {
-  switch (value.kind) {
-  case VAL_NUMBER:
+  switch (value.type) {
+  case TYPE_NUMBER:
     return value.as.number > 0.0;
-  case VAL_BOOLEAN:
+  case TYPE_BOOLEAN:
     return value.as.boolean;
-  case VAL_STRING:
-  case VAL_NULL:
+  case TYPE_STRING:
+  case TYPE_NULL:
     return false;
   }
   return false;
 }
 
-static void stmt_exec(Stmt stmt) {
+static void stmt_exec(InterpreterContext *context, Stmt stmt) {
   switch (stmt.kind) {
   case STMT_EMPTY:
     break;
   case STMT_EXPR: {
-    eval_expr(stmt.as.expr);
+    eval_expr(context, stmt.as.expr);
     break;
   }
   case STMT_BLOCK:
-    stmt_array_exec(stmt.as.block);
+    stmt_array_exec(context, stmt.as.block);
     break;
   case STMT_IF: {
-    Value value = eval_expr(stmt.as.if_branch.condition);
-    if (is_truthy(value)) {
-      stmt_exec(*stmt.as.if_branch.body);
+    Value condition = eval_expr(context, stmt.as.if_branch.condition);
+    if (is_truthy(condition)) {
+      stmt_exec(context, *stmt.as.if_branch.body);
     }
     break;
-  case STMT_ASSIGN:
-    // TODO: Implement
+  }
+  case STMT_ASSIGN: {
+    Value assign_value = eval_expr(context, stmt.as.assign.assignment);
+    set_binding(context, stmt.as.assign.identifier, assign_value);
     break;
   }
   }
 }
 
-static void stmt_array_exec(StmtArray *array) {
+static void stmt_array_exec(InterpreterContext *context, StmtArray *array) {
   for (u32 i = 0; i < array->size; i++) {
-    stmt_exec(array->items[i]);
+    stmt_exec(context, array->items[i]);
   }
 }
 
 void interpreter_begin(InterpreterResult *result, StmtArray *statements) {
+  InterpreterContext context = {0};
+  context.bindings = malloc(sizeof(Binding));
+  context.errors = malloc(sizeof(LogArray));
+
+  da_init(context.bindings, 8);
+  da_init(context.errors, 8);
+
   result->exit_code = 0;
-  stmt_array_exec(statements);
+  stmt_array_exec(&context, statements);
+
+  da_free(context.bindings);
+  da_free(context.errors);
+  free(context.bindings);
+  free(context.errors);
 }
 

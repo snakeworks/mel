@@ -8,6 +8,22 @@ typedef struct {
   i32 exit_code;
 } InterpreterResult;
 
+typedef struct {
+  StringView identifier;
+  Value value;
+} Binding;
+
+typedef struct {
+  Binding *items;
+  u32 capacity;
+  u32 size;
+} BindingArray;
+
+typedef struct {
+  BindingArray *bindings;
+  LogArray *errors;
+} InterpreterContext;
+
 void interpreter_begin(InterpreterResult *result, StmtArray *statements);
 
 #endif

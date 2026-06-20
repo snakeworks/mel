@@ -57,7 +57,7 @@ static Token expect(ParserContext *context, TokenKind token, const char *msg, ..
 Expr *make_expr_number(ParserContext *context, f64 value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
-  e->as.value.kind = VAL_NUMBER;
+  e->as.value.type = TYPE_NUMBER;
   e->as.value.as.number = value;
   return e;
 }
@@ -65,7 +65,7 @@ Expr *make_expr_number(ParserContext *context, f64 value) {
 Expr *make_expr_boolean(ParserContext *context, bool value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
-  e->as.value.kind = VAL_BOOLEAN;
+  e->as.value.type = TYPE_BOOLEAN;
   e->as.value.as.boolean = value;
   return e;
 }
@@ -73,7 +73,7 @@ Expr *make_expr_boolean(ParserContext *context, bool value) {
 Expr *make_expr_string(ParserContext *context, StringView value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
-  e->as.value.kind = VAL_STRING;
+  e->as.value.type = TYPE_STRING;
   e->as.value.as.string = value;
   return e;
 }
@@ -379,17 +379,17 @@ static const char* op_string(TokenKind t) {
 }
 
 void print_value(Value value) {
-  switch (value.kind) {
-  case VAL_NUMBER:
+  switch (value.type) {
+  case TYPE_NUMBER:
     printf("%g", value.as.number);
     break;
-  case VAL_BOOLEAN:
+  case TYPE_BOOLEAN:
     printf(value.as.boolean ? "true" : "false");
     break;
-  case VAL_STRING:
+  case TYPE_STRING:
     printf(SV_FMT, SV_ARG(value.as.string));
     break;
-  case VAL_NULL:
+  case TYPE_NULL:
     printf("null");
     break;
   }

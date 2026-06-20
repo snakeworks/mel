@@ -14,6 +14,7 @@ typedef enum {
   TOK_PLUS,
   TOK_SLASH,
   TOK_STAR,
+  TOK_COLON,
   TOK_SEMICOLON,
 
   TOK_BANG,

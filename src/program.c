@@ -11,6 +11,7 @@ void program_run(const char *source) {
   InterpreterResult interpreter_result = {0};
 
   lexer_begin(&lexer_result, source, arena);
+  print_token_array(lexer_result.tokens);
 
   if (lexer_result.errors->size > 0) {
     print_logs(lexer_result.errors);
