@@ -8,8 +8,12 @@ typedef enum {
   TYPE_NUMBER,
   TYPE_BOOLEAN,
   TYPE_STRING,
+  TYPE_ARRAY,
   TYPE_NULL,
 } Type;
+
+typedef struct Expr Expr;
+typedef struct ExprArray ExprArray;
 
 typedef struct {
   Type type;
@@ -17,6 +21,7 @@ typedef struct {
     f64 number;
     bool boolean;
     StringView string;
+    ExprArray *array;
   } as;
 } Value;
 
@@ -30,13 +35,11 @@ typedef enum {
   EXPR_CALL
 } ExprKind;
 
-typedef struct Expr Expr;
-
-typedef struct {
+struct ExprArray {
   Expr **items;
   u32 capacity;
   u32 size;
-} ExprArray;
+};
 
 struct Expr {
   ExprKind kind;

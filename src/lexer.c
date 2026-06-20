@@ -7,6 +7,8 @@ const char *token_to_str(Token token) {
   switch (token.kind) {
     CASE_STRING(TOK_LEFT_PAREN);
     CASE_STRING(TOK_RIGHT_PAREN);
+    CASE_STRING(TOK_LEFT_BRACKET);
+    CASE_STRING(TOK_RIGHT_BRACKET);
     CASE_STRING(TOK_LEFT_BRACE);
     CASE_STRING(TOK_RIGHT_BRACE);
     CASE_STRING(TOK_COMMA);
@@ -45,6 +47,11 @@ const char *token_to_str(Token token) {
 
 static const char *peek(LexerContext *context) {
   return &context->source[context->current];
+}
+
+static const Token *prev(LexerContext *context) {
+  if (context->tokens->size <= 1) return NULL;
+  return &context->tokens->items[context->tokens->size - 1];
 }
 
 static const char *peek_next(LexerContext *context) {
@@ -114,6 +121,8 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
     switch (*peek(&context)) {
     case '(': add_token(&context, TOK_LEFT_PAREN, advance(&context), 1); break;
     case ')': add_token(&context, TOK_RIGHT_PAREN, advance(&context), 1); break;
+    case '[': add_token(&context, TOK_LEFT_BRACKET, advance(&context), 1); break;
+    case ']': add_token(&context, TOK_RIGHT_BRACKET, advance(&context), 1); break;
     case '{': add_token(&context, TOK_LEFT_BRACE, advance(&context), 1); break;
     case '}': add_token(&context, TOK_RIGHT_BRACE, advance(&context), 1); break;
     case ',': add_token(&context, TOK_COMMA, advance(&context), 1); break;
@@ -176,6 +185,11 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
       break;
     default: {
       if (isdigit(*peek(&context))) {
+        if (prev(&context) != NULL && prev(&context)->kind == TOK_NUMBER) {
+          advance(&context);
+          log_err(context.errors, context.line + 1, "Unexpected number");
+          return;
+        }
         u32 start = context.current;
 
         while (isdigit(*peek(&context))) advance(&context);
@@ -214,6 +228,6 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
 
 void print_token_array(TokenArray *array) {
   for (u32 i = 0; i < array->size; i++) {
-    printf("%s " SV_FMT " (line %d)\n", token_to_str(array->items[i]), SV_ARG(array->items[i].lexeme), array->items[i].line);
+    printf("%s " SV_FMT " (line %d)\n", token_to_str(array->items[i]), SV_ARG(array->items[i].lexeme), array->items[i].line + 1);
   }
 }

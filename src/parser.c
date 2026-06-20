@@ -78,6 +78,14 @@ Expr *make_expr_string(ParserContext *context, StringView value) {
   return e;
 }
 
+Expr *make_expr_array(ParserContext *context, ExprArray *arr) {
+  Expr *e = arena_push(context->arena, Expr);
+  e->kind = EXPR_VALUE;
+  e->as.value.type = TYPE_ARRAY;
+  e->as.value.as.array = arr;
+  return e;
+}
+
 Expr *make_unary(ParserContext *context, TokenKind op, Expr *right) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_UNARY;
@@ -372,6 +380,23 @@ Expr *parse_atom(ParserContext *context) {
     return make_expr_string(context, advance(context).lexeme);
   } else if (peek(context).kind == TOK_IDENTIFIER) {
     return make_identifier(context, advance(context).lexeme);
+  } else if (peek(context).kind == TOK_LEFT_BRACKET) {
+    advance(context);
+    ExprArray *arr = malloc(sizeof(ExprArray));
+    da_init(arr, 4);
+    while (peek(context).kind != TOK_RIGHT_BRACKET) {
+      Expr *el = parse_expr(context);
+      da_append(arr, el);
+      if (peek(context).kind != TOK_RIGHT_BRACKET) {
+        expect(context, TOK_COMMA, "Expected ',' after array element");
+      }
+    }
+    advance(context);
+    ExprArray *copy;
+    da_copy_to_arena(copy, arr, context->arena, ExprArray);
+    da_free(arr);
+    free(arr);
+    return make_expr_array(context, copy);
   }
 
   if (peek(context).kind == TOK_LEFT_PAREN) {
@@ -409,6 +434,16 @@ void print_value(Value value) {
     break;
   case TYPE_STRING:
     printf(SV_FMT, SV_ARG(value.as.string));
+    break;
+  case TYPE_ARRAY:
+    printf("[");
+    for (u32 i = 0; i < value.as.array->size; i++) {
+      print_expr(value.as.array->items[i]);
+      if (i < value.as.array->size-1) {
+        printf(", ");
+      }
+    }
+    printf("]");
     break;
   case TYPE_NULL:
     printf("null");

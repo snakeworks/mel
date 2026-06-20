@@ -114,6 +114,9 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       default: return NULL_VALUE;
       }
       break;
+    case TYPE_ARRAY: {
+      break;
+    }
     case TYPE_NULL:
       // TODO: Implement
       break;
@@ -158,6 +161,7 @@ static bool is_truthy(Value value) {
   case TYPE_BOOLEAN:
     return value.as.boolean;
   case TYPE_STRING:
+  case TYPE_ARRAY:
   case TYPE_NULL:
     return false;
   }
