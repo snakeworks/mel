@@ -182,6 +182,18 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
     }
     break;
   }
+  case STMT_FOR: {
+    if (stmt.as.for_loop.condition == NULL) {
+      while (true) {
+        stmt_exec(context, *stmt.as.for_loop.body);
+      }
+    } else {
+      while (is_truthy(eval_expr(context, stmt.as.for_loop.condition))) {
+        stmt_exec(context, *stmt.as.for_loop.body);
+      }
+    }
+    break;
+  }
   case STMT_ASSIGN: {
     Value assign_value = eval_expr(context, stmt.as.assign.assignment);
     set_binding(context, stmt.as.assign.identifier, assign_value);

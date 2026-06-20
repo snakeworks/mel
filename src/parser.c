@@ -179,6 +179,19 @@ Stmt parse_statement(ParserContext *context) {
       }
     };
   }
+  case TOK_FOR: {
+    advance(context);
+    Expr *condition = parse_expr(context);
+    Stmt *stmt = arena_push(context->arena, Stmt);
+    *stmt = parse_statement(context);
+    return (Stmt){
+      .kind = STMT_FOR,
+      .as.for_loop = {
+        .condition = condition,
+        .body = stmt,
+      }
+    };
+  }
   case TOK_IDENTIFIER: {
     if (peek_next(context).kind == TOK_EQUAL) {
       Expr *identifier = parse_expr(context);
@@ -217,6 +230,7 @@ static const char *stmt_kind_to_str(StmtKind kind) {
   CASE_STRING(STMT_EXPR);
   CASE_STRING(STMT_BLOCK);
   CASE_STRING(STMT_IF);
+  CASE_STRING(STMT_FOR);
   CASE_STRING(STMT_ASSIGN);
   }
   return "";
@@ -237,6 +251,13 @@ static void print_stmt(Stmt *stmt, u8 indent) {
       print_expr(stmt->as.if_branch.condition);
       printf(" \n");
       print_stmt(stmt->as.if_branch.body, indent + 2);
+      break;
+    }
+    case STMT_FOR: {
+      printf("for ");
+      print_expr(stmt->as.for_loop.condition);
+      printf(" \n");
+      print_stmt(stmt->as.for_loop.body, indent + 2);
       break;
     }
     case STMT_ASSIGN: {
@@ -396,6 +417,9 @@ void print_value(Value value) {
 }
 
 void print_expr(Expr *e) {
+  if (e == NULL) {
+    return;
+  }
   switch (e->kind) {
   case EXPR_VALUE:
     print_value(e->as.value);

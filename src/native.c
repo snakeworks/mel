@@ -1,5 +1,6 @@
 #include "native.h"
 #include "parser.h"
+#include <stdio.h>
 
 Value native_print(Value *args, u32 count) {
   if (count < 1) {
@@ -8,6 +9,18 @@ Value native_print(Value *args, u32 count) {
 
   for (u32 i = 0; i < count; i++) {
     print_value(args[i]);
+  }
+
+  return NULL_VALUE;
+}
+
+Value native_println(Value *args, u32 count) {
+  if (count < 1) {
+    return NULL_VALUE;
+  }
+
+  for (u32 i = 0; i < count; i++) {
+    print_value(args[i]); printf("\n");
   }
 
   return NULL_VALUE;
@@ -39,6 +52,7 @@ Value native_max(Value *args, u32 count) {
 
 NativeFn map_identifier_to_native_fn(StringView identifier) {
   if (sv_is_equal_to_cstr(identifier, "print")) return native_print;
+  else if (sv_is_equal_to_cstr(identifier, "println")) return native_println;
   else if (sv_is_equal_to_cstr(identifier, "min")) return native_min;
   else if (sv_is_equal_to_cstr(identifier, "max")) return native_max;
   return NULL;
