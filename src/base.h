@@ -42,17 +42,17 @@
     (array)->capacity = 0;                                                     \
   } while (false)
 
-  #define da_copy_to_arena(dest, src, arena, T)                               \
-    do {                                                                       \
-      (dest) = arena_alloc((arena), sizeof(T), alignof(T));                    \
-      (dest)->size = (src)->size;                                             \
-      (dest)->capacity = (src)->size;                                         \
-      (dest)->items = arena_alloc((arena),                                      \
-          (src)->size * sizeof(*(src)->items),                             \
-          alignof(*(src)->items));                                          \
-      memcpy((dest)->items, (src)->items,                                     \
-          (src)->size * sizeof(*(src)->items));                            \
-    } while (false)
+#define da_copy_to_arena(dest, src, arena, T)                                  \
+  do {                                                                         \
+    (dest) = arena_alloc((arena), sizeof(T), alignof(T));                      \
+    (dest)->size = (src)->size;                                                \
+    (dest)->capacity = (src)->size;                                            \
+    (dest)->items = arena_alloc((arena),                                       \
+        (src)->size * sizeof(*(src)->items),                                   \
+        alignof(*(src)->items));                                               \
+    memcpy((dest)->items, (src)->items,                                        \
+        (src)->size * sizeof(*(src)->items));                                  \
+  } while (false)
 
 #define CASE_STRING(val)                                                       \
   case val:                                                                    \
