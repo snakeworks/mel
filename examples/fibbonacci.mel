@@ -1,0 +1,9 @@
+a = 0;
+b = 1;
+for i in 100 {
+  println(a);
+  temp = a;
+  a = b;
+  b = temp + b;
+}
+

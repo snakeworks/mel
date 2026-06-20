@@ -397,7 +397,11 @@ Expr *parse_atom(ParserContext *context) {
     return make_identifier(context, advance(context).lexeme);
   } else if (peek(context).kind == TOK_LEFT_BRACKET) {
     advance(context);
-    ExprArray *arr = malloc(sizeof(ExprArray));
+    // The struct lives in the arena, but its items buffer stays on the malloc
+    // heap so it can be grown with realloc by array_append at runtime. Copying
+    // it into the arena (da_copy_to_arena) would make da_append realloc an
+    // arena pointer, which is undefined behavior and segfaults
+    ExprArray *arr = arena_push(context->arena, ExprArray);
     da_init(arr, 4);
     while (peek(context).kind != TOK_RIGHT_BRACKET) {
       Expr *el = parse_expr(context);
@@ -407,11 +411,7 @@ Expr *parse_atom(ParserContext *context) {
       }
     }
     advance(context);
-    ExprArray *copy;
-    da_copy_to_arena(copy, arr, context->arena, ExprArray);
-    da_free(arr);
-    free(arr);
-    return make_expr_array(context, copy);
+    return make_expr_array(context, arr);
   }
 
   if (peek(context).kind == TOK_LEFT_PAREN) {

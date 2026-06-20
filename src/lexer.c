@@ -63,6 +63,10 @@ static const char *advance(LexerContext *context) {
   return &context->source[context->current++];
 }
 
+static bool is_possible_identifier(char c) {
+  return isalpha(c) || c == '_';
+}
+
 void add_token(LexerContext *context, TokenKind kind, const char *lexeme_start, u32 lexeme_length) {
   StringView s = {.start = lexeme_start, .length = lexeme_length};
   Token t = {.kind = kind, .lexeme = s, .line = context->line};
@@ -210,9 +214,9 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
         add_token(&context, TOK_NUMBER, &source[start], length);
 
         break;
-      } else if (isalpha(*peek(&context))) {
+      } else if (is_possible_identifier(*peek(&context))) {
         u32 start = context.current;
-        while (isalpha(*peek(&context))) advance(&context);
+        while (is_possible_identifier(*peek(&context))) advance(&context);
         u32 length = context.current - start;
         TokenKind kind = str_to_identifier_kind(&source[start], length);
         add_token(&context, kind, &source[start], length);
