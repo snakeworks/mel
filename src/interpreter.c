@@ -1,4 +1,5 @@
 #include "interpreter.h"
+#include "native.h"
 #include "parser.h"
 #include <assert.h>
 #include <string.h>
@@ -86,19 +87,14 @@ static Value eval_expr(Expr *expr) {
     break;
   }
   case EXPR_CALL: {
-    if (
-      sv_is_equal_to_cstr(
-        expr->as.call.callee->as.identifier,
-        "print"
-      )
-    ) {
-      if (expr->as.call.args->size != 1) {
-        return NULL_VALUE;
+    NativeFn fn = map_identifier_to_native_fn(expr->as.call.callee->as.identifier);
+    if (fn != NULL) {
+      u32 count = expr->as.call.args->size;
+      Value values[count];
+      for (u32 i = 0; i < count; i++) {
+        values[i] = eval_expr(expr->as.call.args->items[i]);
       }
-      Expr *msg = expr->as.call.args->items[0];
-      Value value = eval_expr(msg);
-      print_value(value);
-      return NULL_VALUE;
+      return fn(values, count);
     }
     return NULL_VALUE;
   }
