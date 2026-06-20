@@ -87,6 +87,7 @@ static Value eval_expr(Expr *expr) {
     break;
   }
   case EXPR_CALL: {
+    if (expr->as.call.callee->kind != EXPR_IDENTIFIER) return NULL_VALUE;
     NativeFn fn = map_identifier_to_native_fn(expr->as.call.callee->as.identifier);
     if (fn != NULL) {
       u32 count = expr->as.call.args->size;

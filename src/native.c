@@ -1,6 +1,6 @@
 #include "native.h"
 
-Value __native_print(Value *args, u32 count) {
+Value native_print(Value *args, u32 count) {
   if (count < 1) {
     return NULL_VALUE;
   }
@@ -13,6 +13,6 @@ Value __native_print(Value *args, u32 count) {
 }
 
 NativeFn map_identifier_to_native_fn(StringView identifier) {
-  if (sv_is_equal_to_cstr(identifier, "print")) return __native_print;
+  if (sv_is_equal_to_cstr(identifier, "print")) return native_print;
   return NULL;
 }
