@@ -149,6 +149,9 @@ static void stmt_exec(Stmt stmt) {
       stmt_exec(*stmt.as.if_branch.body);
     }
     break;
+  case STMT_ASSIGN:
+    // TODO: Implement
+    break;
   }
   }
 }

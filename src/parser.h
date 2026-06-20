@@ -54,6 +54,7 @@ typedef enum {
   STMT_EXPR,
   STMT_BLOCK,
   STMT_IF,
+  STMT_ASSIGN,
 } StmtKind;
 
 typedef struct Stmt Stmt;
@@ -65,6 +66,7 @@ struct Stmt {
     Expr *expr;
     StmtArray *block;
     struct { Expr *condition; Stmt *body; } if_branch;
+    struct { StringView identifier; Expr *assignment; } assign;
   } as;
 };
 

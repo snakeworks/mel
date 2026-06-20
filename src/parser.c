@@ -21,6 +21,10 @@ static Token peek(ParserContext *context) {
   return context->tokens->items[context->current];
 }
 
+static Token peek_next(ParserContext *context) {
+  return context->tokens->items[context->current + 1];
+}
+
 static u32 cur_line(ParserContext *context) {
   return context->tokens->items[context->current].line + 1;
 }
@@ -175,9 +179,29 @@ Stmt parse_statement(ParserContext *context) {
       }
     };
   }
+  case TOK_IDENTIFIER: {
+    if (peek_next(context).kind == TOK_EQUAL) {
+      Expr *identifier = parse_expr(context);
+      advance(context);
+      Expr *assignment = parse_expr(context);
+      expect(context, TOK_SEMICOLON, "Expected ';' after expression");
+      return (Stmt){
+        .kind = STMT_ASSIGN,
+        .as.assign = {
+          .identifier = identifier->as.identifier,
+          .assignment = assignment
+        }
+      };
+    }
+    [[fallthrough]]; // Let case fall through
+  }
   default: {
     Expr *expr = parse_expr(context);
-    expect(context, TOK_SEMICOLON, "Expected ';' after expression");
+    if (expr->kind != EXPR_IDENTIFIER) {
+      expect(context, TOK_SEMICOLON, "Expected ';' after expression");
+    } else {
+      advance(context);
+    }
     return (Stmt){
       .kind = STMT_EXPR,
       .as.expr = expr
@@ -193,6 +217,7 @@ static const char *stmt_kind_to_str(StmtKind kind) {
   CASE_STRING(STMT_EXPR);
   CASE_STRING(STMT_BLOCK);
   CASE_STRING(STMT_IF);
+  CASE_STRING(STMT_ASSIGN);
   }
   return "";
 }
@@ -213,6 +238,11 @@ static void print_stmt(Stmt *stmt, u8 indent) {
       printf(" \n");
       print_stmt(stmt->as.if_branch.body, indent + 2);
       break;
+    }
+    case STMT_ASSIGN: {
+      printf(SV_FMT" = ", SV_ARG(stmt->as.assign.identifier));
+      print_expr(stmt->as.assign.assignment);
+      printf("\n");
     }
   }
 }

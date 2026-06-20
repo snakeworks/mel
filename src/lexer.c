@@ -74,17 +74,21 @@ bool seek(LexerContext *context, char symbol) {
   return true;
 }
 
+static bool kw_is_equal(const char *start, const char *kw, u32 length) {
+  return strlen(kw) == length && strncmp(start, kw, length) == 0;
+}
+
 TokenKind str_to_identifier_kind(const char *start, u32 length) {
-  if (strncmp(start, "and", length) == 0) return TOK_AND;
-  else if (strncmp(start, "or", length) == 0) return TOK_OR;
-  else if (strncmp(start, "if", length) == 0) return TOK_IF;
-  else if (strncmp(start, "else", length) == 0) return TOK_ELSE;
-  else if (strncmp(start, "true", length) == 0) return TOK_TRUE;
-  else if (strncmp(start, "false", length) == 0) return TOK_FALSE;
-  else if (strncmp(start, "func", length) == 0) return TOK_FUNC;
-  else if (strncmp(start, "for", length) == 0) return TOK_FOR;
-  else if (strncmp(start, "null", length) == 0) return TOK_NULL;
-  else if (strncmp(start, "return", length) == 0) return TOK_RETURN;
+  if (kw_is_equal(start, "and", length)) return TOK_AND;
+  else if (kw_is_equal(start, "or", length)) return TOK_OR;
+  else if (kw_is_equal(start, "if", length)) return TOK_IF;
+  else if (kw_is_equal(start, "else", length)) return TOK_ELSE;
+  else if (kw_is_equal(start, "true", length)) return TOK_TRUE;
+  else if (kw_is_equal(start, "false", length)) return TOK_FALSE;
+  else if (kw_is_equal(start, "func", length)) return TOK_FUNC;
+  else if (kw_is_equal(start, "for", length)) return TOK_FOR;
+  else if (kw_is_equal(start, "null", length)) return TOK_NULL;
+  else if (kw_is_equal(start, "return", length)) return TOK_RETURN;
   return TOK_IDENTIFIER;
 }
 

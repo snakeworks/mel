@@ -24,6 +24,8 @@ void program_run(const char *source) {
     goto cleanup;
   }
 
+  print_stmt_array(parser_result.statements, 0);
+
   interpreter_begin(&interpreter_result, parser_result.statements);
 
 cleanup:
