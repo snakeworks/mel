@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string.h>
 
+#define MAX_ARGS 32
+
 static Value make_value_number(f64 value) {
   Value v;
   v.kind = VAL_NUMBER;
@@ -87,16 +89,25 @@ static Value eval_expr(Expr *expr) {
     break;
   }
   case EXPR_CALL: {
-    if (expr->as.call.callee->kind != EXPR_IDENTIFIER) return NULL_VALUE;
+    if (expr->as.call.callee->kind != EXPR_IDENTIFIER) return NULL_VALUE; // TODO: Runtime error
+
     NativeFn fn = map_identifier_to_native_fn(expr->as.call.callee->as.identifier);
     if (fn != NULL) {
       u32 count = expr->as.call.args->size;
-      Value values[count];
+
+      if (count > MAX_ARGS) {
+        // TODO: Runtime error
+        return NULL_VALUE;
+      }
+
+      Value values[MAX_ARGS];
       for (u32 i = 0; i < count; i++) {
         values[i] = eval_expr(expr->as.call.args->items[i]);
       }
+
       return fn(values, count);
     }
+
     return NULL_VALUE;
   }
   default:
