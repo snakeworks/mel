@@ -56,6 +56,7 @@ static void set_binding(InterpreterContext *context, StringView identifier, Valu
 }
 
 static Value eval_expr(InterpreterContext *context, Expr *expr);
+static bool is_truthy(Value value);
 
 static Value eval_value_subscript(InterpreterContext *context, Value value, u64 index) {
   switch (value.type) {
@@ -134,6 +135,8 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       case TOK_BANG_EQUAL: return make_value_boolean(l.as.number != r.as.number);
       case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
       case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
+      case TOK_OR: return make_value_boolean(is_truthy(l) || is_truthy(r));
+      case TOK_AND: return make_value_boolean(is_truthy(l) && is_truthy(r));
       default: return make_value_number(0.0);
       }
     }
@@ -145,6 +148,8 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       case TOK_BANG_EQUAL: return make_value_boolean(l.as.boolean != r.as.boolean);
       case TOK_GREATER: return make_value_boolean(l.as.boolean > r.as.boolean);
       case TOK_GREATER_EQUAL: return make_value_boolean(l.as.boolean >= r.as.boolean);
+      case TOK_OR: return make_value_boolean(is_truthy(l) || is_truthy(r));
+      case TOK_AND: return make_value_boolean(is_truthy(l) && is_truthy(r));
       default: return make_value_boolean(false);
       }
       break;
@@ -152,6 +157,8 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       switch (expr->as.binary.op) {
       case TOK_DOUBLE_EQUAL: return make_value_boolean(sv_is_equal(l.as.string, r.as.string));
       case TOK_BANG_EQUAL: return make_value_boolean(!sv_is_equal(l.as.string, r.as.string));
+      case TOK_OR: return make_value_boolean(is_truthy(l) || is_truthy(r));
+      case TOK_AND: return make_value_boolean(is_truthy(l) && is_truthy(r));
       default: return NULL_VALUE;
       }
       break;

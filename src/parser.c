@@ -9,6 +9,8 @@
 
 Expr *parse_expr(ParserContext *context);
 Expr *parse_comparison(ParserContext *context);
+Expr *parse_or(ParserContext *context);
+Expr *parse_and(ParserContext *context);
 Expr *parse_add_sub(ParserContext *context);
 Expr *parse_mul_div(ParserContext *context);
 Expr *parse_unary(ParserContext *context);
@@ -299,7 +301,27 @@ void print_stmt_array(StmtArray *array, u8 indent) {
 }
 
 Expr *parse_expr(ParserContext *context) {
-  return parse_comparison(context);
+  return parse_or(context);
+}
+
+Expr *parse_or(ParserContext *context) {
+  Expr *left = parse_and(context);
+  while (peek(context).kind == TOK_OR) {
+    advance(context);
+    Expr *right = parse_and(context);
+    left = make_binary(context, left, TOK_OR, right);
+  }
+  return left;
+}
+
+Expr *parse_and(ParserContext *context) {
+  Expr *left = parse_comparison(context);
+  while (peek(context).kind == TOK_AND) {
+    advance(context);
+    Expr *right = parse_comparison(context);
+    left = make_binary(context, left, TOK_AND, right);
+  }
+  return left;
 }
 
 Expr *parse_comparison(ParserContext *context) {
@@ -442,6 +464,8 @@ static const char* op_string(TokenKind t) {
     case TOK_BANG_EQUAL: return "!=";
     case TOK_GREATER: return ">";
     case TOK_GREATER_EQUAL: return ">=";
+    case TOK_OR: return "or";
+    case TOK_AND: return "and";
     default: return "?";
   }
 }

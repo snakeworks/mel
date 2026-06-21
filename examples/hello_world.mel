@@ -1,5 +1,6 @@
 a = 50;
-if a == 20 {
+b = 20;
+if a == 20 or b == 20 {
   println("a is 20");
 } else {
   println("a is not 20");
