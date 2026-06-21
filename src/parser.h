@@ -71,7 +71,7 @@ struct Stmt {
   union {
     Expr *expr;
     StmtArray *block;
-    struct { Expr *condition; Stmt *body; } if_branch;
+    struct { Expr *condition; Stmt *body; Stmt *else_body; } if_branch;
     struct { Expr *condition; Stmt *body; } for_loop;
     struct { StringView identifier; Expr *assignment; } assign;
   } as;

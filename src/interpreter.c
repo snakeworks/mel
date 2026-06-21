@@ -232,6 +232,8 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
     Value condition = eval_expr(context, stmt.as.if_branch.condition);
     if (is_truthy(condition)) {
       stmt_exec(context, *stmt.as.if_branch.body);
+    } else if (stmt.as.if_branch.else_body != NULL) {
+      stmt_exec(context, *stmt.as.if_branch.else_body);
     }
     break;
   }

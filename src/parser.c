@@ -186,13 +186,19 @@ Stmt parse_statement(ParserContext *context) {
       log_err(context->errors, cur_line(context), "Expected expression");
       return (Stmt){.kind = STMT_EMPTY};
     }
-    Stmt *stmt = arena_push(context->arena, Stmt);
-    *stmt = parse_statement(context);
+    Stmt *body = arena_push(context->arena, Stmt);
+    *body = parse_statement(context);
+    Stmt *else_body = arena_push(context->arena, Stmt);
+    if (peek(context).kind == TOK_ELSE) {
+      advance(context);
+      *else_body = parse_statement(context);
+    }
     return (Stmt) {
       .kind = STMT_IF,
       .as.if_branch = {
         .condition = condition,
-        .body = stmt
+        .body = body,
+        .else_body = else_body
       }
     };
   }
@@ -268,6 +274,7 @@ static void print_stmt(Stmt *stmt, u8 indent) {
       print_expr(stmt->as.if_branch.condition);
       printf(" \n");
       print_stmt(stmt->as.if_branch.body, indent + 2);
+      print_stmt(stmt->as.if_branch.else_body, indent + 2);
       break;
     }
     case STMT_FOR: {
