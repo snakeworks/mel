@@ -6,7 +6,6 @@
 #include <string.h>
 
 #define MAX_ARGS 32
-#define RETURN_BINDING_IDENTIFIER ((StringView){.start = "#return", .length = 7})
 
 static Value make_value_number(f64 value) {
   Value v;
@@ -43,18 +42,43 @@ static void free_cur_env(InterpreterContext *context) {
   free(context->cur_env);
 }
 
-static Binding *get_binding(InterpreterContext *context, StringView identifier) {
-  for (u32 i = 0; i < context->cur_env->bindings->size; i++) {
+static Binding *get_binding_from_env(Environment *env, StringView identifier) {
+  for (u32 i = 0; i < env->bindings->size; i++) {
     if (
       sv_is_equal(
-        context->cur_env->bindings->items[i].identifier,
+        env->bindings->items[i].identifier,
         identifier
       )
     ) {
-      return &context->cur_env->bindings->items[i];
+      return &env->bindings->items[i];
     }
   }
   return NULL;
+}
+
+static Binding *get_binding(InterpreterContext *context, StringView identifier) {
+  Environment *env = context->cur_env;
+  while (env != NULL) {
+    Binding *binding = get_binding_from_env(env, identifier);
+    if (binding != NULL) {
+      return binding;
+    }
+    env = env->parent;
+  }
+  return NULL;
+}
+
+static void set_env_binding(Environment *env, StringView identifier, Value value) {
+  Binding *existing = get_binding_from_env(env, identifier);
+  if (existing != NULL) {
+    existing->value = value;
+  } else {
+    Binding binding = {
+      .identifier = identifier,
+      .value = value
+    };
+    da_append(env->bindings, binding);
+  }
 }
 
 static void set_binding(InterpreterContext *context, StringView identifier, Value value) {
@@ -137,6 +161,9 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
     return expr->as.value;
   case EXPR_IDENTIFIER: {
     Binding *binding = get_binding(context, expr->as.identifier);
+    if (binding == NULL) {
+      return NULL_VALUE;
+    }
     return binding->value;
   }
   case EXPR_UNARY: {
@@ -220,6 +247,9 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       return fn(values, count);
     } else {
       Stmt *fn = find_fn(context->statements, identifier);
+      if (fn == NULL) {
+        return NULL_VALUE; // TODO: Runtime error
+      }
       if (fn->as.fn_declare.param_count != count) {
         return NULL_VALUE; // TODO: Runtime error
       }
@@ -227,19 +257,20 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       Environment *fn_env = make_env(context);
       Environment *prev_env = context->cur_env;
       context->cur_env = fn_env;
+      context->return_value = NULL_VALUE;
 
       for (u32 i = 0; i < fn->as.fn_declare.param_count; i++) {
-        set_binding(context, fn->as.fn_declare.param_identifiers[i], values[i]);
+        set_env_binding(fn_env, fn->as.fn_declare.param_identifiers[i], values[i]);
       }
 
       stmt_exec(context, *fn->as.fn_declare.body);
 
-      Binding *ret_binding = get_binding(context, RETURN_BINDING_IDENTIFIER);
+      context->returning = false;
 
       free_cur_env(context);
       context->cur_env = prev_env;
 
-      return ret_binding == NULL ? NULL_VALUE : ret_binding->value;
+      return context->return_value;
     }
 
     return NULL_VALUE;
@@ -296,10 +327,16 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
   case STMT_FOR: {
     if (stmt.as.for_loop.condition == NULL) {
       while (true) {
+        if (context->returning) {
+          break;
+        }
         stmt_exec(context, *stmt.as.for_loop.body);
       }
     } else {
       while (is_truthy(eval_expr(context, stmt.as.for_loop.condition))) {
+        if (context->returning) {
+          break;
+        }
         stmt_exec(context, *stmt.as.for_loop.body);
       }
     }
@@ -314,8 +351,8 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
     break;
   }
   case STMT_RETURN: {
-    Value ret = eval_expr(context, stmt.as.return_expr);
-    set_binding(context, RETURN_BINDING_IDENTIFIER, ret);
+    context->return_value = eval_expr(context, stmt.as.return_expr);
+    context->returning = true;
     break;
   }
   }
@@ -323,10 +360,10 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
 
 static void stmt_array_exec(InterpreterContext *context, StmtArray *array) {
   for (u32 i = 0; i < array->size; i++) {
-    stmt_exec(context, array->items[i]);
-    if (array->items[i].kind == STMT_RETURN) {
+    if (context->returning) {
       break;
     }
+    stmt_exec(context, array->items[i]);
   }
 }
 
@@ -343,6 +380,7 @@ void interpreter_begin(InterpreterResult *result, StmtArray *statements) {
   stmt_array_exec(&context, statements);
 
   da_free(context.errors);
+  free_cur_env(&context); // TODO: Assumes we'll always return to the global env after finishing execution
   arena_free(context.arena);
   free(context.errors);
 }

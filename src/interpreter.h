@@ -31,6 +31,8 @@ typedef struct {
   Arena *arena;
   Environment *cur_env;
   LogArray *errors;
+  Value return_value;
+  bool returning;
 } InterpreterContext;
 
 void interpreter_begin(InterpreterResult *result, StmtArray *statements);

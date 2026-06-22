@@ -1,6 +1,4 @@
-fn add(a, b) {
-  return a + b;
+fn hello(str) {
+  print("Hello, ", str);
 }
-
-a = add(1, 5);
-print(a);
+hello("World");
