@@ -257,6 +257,18 @@ Stmt parse_statement(ParserContext *context) {
       }
     };
   }
+  case TOK_RETURN: {
+    advance(context);
+    Expr *expr = NULL;
+    if (peek(context).kind != TOK_SEMICOLON) {
+      expr = parse_expr(context);
+    }
+    expect(context, TOK_SEMICOLON, "Expected ';' after return statement");
+    return (Stmt) {
+      .kind = STMT_RETURN,
+      .as.return_expr = expr
+    };
+  }
   case TOK_IDENTIFIER: {
     if (peek_next(context).kind == TOK_EQUAL) {
       Expr *identifier = parse_expr(context);
@@ -298,6 +310,7 @@ static const char *stmt_kind_to_str(StmtKind kind) {
   CASE_STRING(STMT_FOR);
   CASE_STRING(STMT_ASSIGN);
   CASE_STRING(STMT_FN_DECLARE);
+  CASE_STRING(STMT_RETURN);
   }
   return "";
 }
@@ -342,6 +355,12 @@ static void print_stmt(Stmt *stmt, u8 indent) {
         }
       }
       printf(")\n");
+      print_stmt(stmt->as.fn_declare.body, indent + 2);
+      break;
+    }
+    case STMT_RETURN: {
+      print_expr(stmt->as.return_expr);
+      printf("\n");
       break;
     }
   }

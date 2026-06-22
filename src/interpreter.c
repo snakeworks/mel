@@ -6,6 +6,7 @@
 #include <string.h>
 
 #define MAX_ARGS 32
+#define RETURN_BINDING_IDENTIFIER ((StringView){.start = "#return", .length = 7})
 
 static Value make_value_number(f64 value) {
   Value v;
@@ -230,10 +231,15 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       for (u32 i = 0; i < fn->as.fn_declare.param_count; i++) {
         set_binding(context, fn->as.fn_declare.param_identifiers[i], values[i]);
       }
+
       stmt_exec(context, *fn->as.fn_declare.body);
+
+      Binding *ret_binding = get_binding(context, RETURN_BINDING_IDENTIFIER);
 
       free_cur_env(context);
       context->cur_env = prev_env;
+
+      return ret_binding == NULL ? NULL_VALUE : ret_binding->value;
     }
 
     return NULL_VALUE;
@@ -307,12 +313,20 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
   case STMT_FN_DECLARE: {
     break;
   }
+  case STMT_RETURN: {
+    Value ret = eval_expr(context, stmt.as.return_expr);
+    set_binding(context, RETURN_BINDING_IDENTIFIER, ret);
+    break;
+  }
   }
 }
 
 static void stmt_array_exec(InterpreterContext *context, StmtArray *array) {
   for (u32 i = 0; i < array->size; i++) {
     stmt_exec(context, array->items[i]);
+    if (array->items[i].kind == STMT_RETURN) {
+      break;
+    }
   }
 }
 
