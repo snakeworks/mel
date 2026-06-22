@@ -28,15 +28,29 @@ static Value make_value_string(StringView value) {
   return v;
 }
 
+static Environment *make_env(InterpreterContext *context) {
+  Environment *env = malloc(sizeof(Environment));
+  env->parent = context->cur_env;
+  env->bindings = malloc(sizeof(BindingArray));
+  da_init(env->bindings, 8);
+  return env;
+}
+
+static void free_cur_env(InterpreterContext *context) {
+  da_free(context->cur_env->bindings);
+  free(context->cur_env->bindings);
+  free(context->cur_env);
+}
+
 static Binding *get_binding(InterpreterContext *context, StringView identifier) {
-  for (u32 i = 0; i < context->bindings->size; i++) {
+  for (u32 i = 0; i < context->cur_env->bindings->size; i++) {
     if (
       sv_is_equal(
-        context->bindings->items[i].identifier,
+        context->cur_env->bindings->items[i].identifier,
         identifier
       )
     ) {
-      return &context->bindings->items[i];
+      return &context->cur_env->bindings->items[i];
     }
   }
   return NULL;
@@ -51,8 +65,20 @@ static void set_binding(InterpreterContext *context, StringView identifier, Valu
       .identifier = identifier,
       .value = value
     };
-    da_append(context->bindings, binding);
+    da_append(context->cur_env->bindings, binding);
   }
+}
+
+static Stmt *find_fn(StmtArray *stmts, StringView identifier) {
+  for (u32 i = 0; i < stmts->size; i++) {
+    if (
+      stmts->items[i].kind == STMT_FN_DECLARE &&
+      sv_is_equal(stmts->items[i].as.fn_declare.identifier, identifier)
+    ) {
+      return &stmts->items[i];
+    }
+  }
+  return NULL;
 }
 
 static Value eval_expr(InterpreterContext *context, Expr *expr);
@@ -96,6 +122,9 @@ static Value eval_expr_subscript(InterpreterContext *context, Expr *expr, u64 in
   }
   return NULL_VALUE;
 }
+
+static void stmt_exec(InterpreterContext *context, Stmt stmt);
+static void stmt_array_exec(InterpreterContext *context, StmtArray *array);
 
 static Value eval_expr(InterpreterContext *context, Expr *expr) {
   if (expr == NULL) {
@@ -174,21 +203,37 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
   case EXPR_CALL: {
     if (expr->as.call.callee->kind != EXPR_IDENTIFIER) return NULL_VALUE; // TODO: Runtime error
 
-    NativeFn fn = map_identifier_to_native_fn(expr->as.call.callee->as.identifier);
+    StringView identifier = expr->as.call.callee->as.identifier;
+    NativeFn fn = map_identifier_to_native_fn(identifier);
+    u32 count = expr->as.call.args->size;
+    if (count > MAX_ARGS) {
+      // TODO: Runtime error
+      return NULL_VALUE;
+    }
+    Value values[MAX_ARGS];
+    for (u32 i = 0; i < count; i++) {
+      values[i] = eval_expr(context, expr->as.call.args->items[i]);
+    }
+
     if (fn != NULL) {
-      u32 count = expr->as.call.args->size;
-
-      if (count > MAX_ARGS) {
-        // TODO: Runtime error
-        return NULL_VALUE;
-      }
-
-      Value values[MAX_ARGS];
-      for (u32 i = 0; i < count; i++) {
-        values[i] = eval_expr(context, expr->as.call.args->items[i]);
-      }
-
       return fn(values, count);
+    } else {
+      Stmt *fn = find_fn(context->statements, identifier);
+      if (fn->as.fn_declare.param_count != count) {
+        return NULL_VALUE; // TODO: Runtime error
+      }
+
+      Environment *fn_env = make_env(context);
+      Environment *prev_env = context->cur_env;
+      context->cur_env = fn_env;
+
+      for (u32 i = 0; i < fn->as.fn_declare.param_count; i++) {
+        set_binding(context, fn->as.fn_declare.param_identifiers[i], values[i]);
+      }
+      stmt_exec(context, *fn->as.fn_declare.body);
+
+      free_cur_env(context);
+      context->cur_env = prev_env;
     }
 
     return NULL_VALUE;
@@ -207,8 +252,6 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
   return NULL_VALUE;
 }
 
-static void stmt_exec(InterpreterContext *context, Stmt stmt);
-static void stmt_array_exec(InterpreterContext *context, StmtArray *array);
 
 static bool is_truthy(Value value) {
   switch (value.type) {
@@ -261,6 +304,9 @@ static void stmt_exec(InterpreterContext *context, Stmt stmt) {
     set_binding(context, stmt.as.assign.identifier, assign_value);
     break;
   }
+  case STMT_FN_DECLARE: {
+    break;
+  }
   }
 }
 
@@ -272,18 +318,18 @@ static void stmt_array_exec(InterpreterContext *context, StmtArray *array) {
 
 void interpreter_begin(InterpreterResult *result, StmtArray *statements) {
   InterpreterContext context = {0};
-  context.bindings = malloc(sizeof(Binding));
+  context.statements = statements;
+  context.arena = arena_init(1024 * 1000);
   context.errors = malloc(sizeof(LogArray));
+  context.cur_env = make_env(&context);
 
-  da_init(context.bindings, 8);
   da_init(context.errors, 8);
 
   result->exit_code = 0;
   stmt_array_exec(&context, statements);
 
-  da_free(context.bindings);
   da_free(context.errors);
-  free(context.bindings);
+  arena_free(context.arena);
   free(context.errors);
 }
 

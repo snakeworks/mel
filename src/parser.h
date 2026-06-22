@@ -61,6 +61,7 @@ typedef enum {
   STMT_IF,
   STMT_FOR,
   STMT_ASSIGN,
+  STMT_FN_DECLARE
 } StmtKind;
 
 typedef struct Stmt Stmt;
@@ -74,6 +75,7 @@ struct Stmt {
     struct { Expr *condition; Stmt *body; Stmt *else_body; } if_branch;
     struct { Expr *condition; Stmt *body; } for_loop;
     struct { StringView identifier; Expr *assignment; } assign;
+    struct { StringView identifier; StringView *param_identifiers; u64 param_count; Stmt *body; } fn_declare;
   } as;
 };
 

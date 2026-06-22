@@ -19,8 +19,17 @@ typedef struct {
   u32 size;
 } BindingArray;
 
-typedef struct {
+typedef struct Environment Environment;
+
+struct Environment {
   BindingArray *bindings;
+  Environment *parent;
+};
+
+typedef struct {
+  StmtArray *statements;
+  Arena *arena;
+  Environment *cur_env;
   LogArray *errors;
 } InterpreterContext;
 

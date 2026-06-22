@@ -217,6 +217,46 @@ Stmt parse_statement(ParserContext *context) {
       }
     };
   }
+  case TOK_FN: {
+    advance(context);
+    StringView identifier = expect(context, TOK_IDENTIFIER, "Expected identifier after function keyword").lexeme;
+    expect(context, TOK_LEFT_PAREN, "Expected opening parenthesis after function name");
+
+    u32 param_count = 0;
+    u32 loc_tok_index = context->current;
+    while (context->tokens->items[loc_tok_index].kind != TOK_RIGHT_PAREN) {
+      if (context->tokens->items[loc_tok_index].kind == TOK_IDENTIFIER) {
+        param_count++;
+      }
+      loc_tok_index++;
+    }
+
+    StringView *arg_identifiers = arena_alloc(context->arena, sizeof(StringView)*param_count, alignof(StringView));
+
+    u32 param_index = 0;
+    while (peek(context).kind != TOK_RIGHT_PAREN) {
+      Token tok = advance(context);
+      if (tok.kind != TOK_IDENTIFIER) {
+        continue;
+      }
+      arg_identifiers[param_index++] = tok.lexeme;
+    }
+
+    expect(context, TOK_RIGHT_PAREN, "Expected closing parenthesis after function arguments");
+
+    Stmt *body = arena_push(context->arena, Stmt);
+    *body = parse_statement(context);
+
+    return (Stmt) {
+      .kind = STMT_FN_DECLARE,
+      .as.fn_declare = {
+        .identifier = identifier,
+        .param_identifiers = arg_identifiers,
+        .param_count = param_count,
+        .body = body
+      }
+    };
+  }
   case TOK_IDENTIFIER: {
     if (peek_next(context).kind == TOK_EQUAL) {
       Expr *identifier = parse_expr(context);
@@ -257,6 +297,7 @@ static const char *stmt_kind_to_str(StmtKind kind) {
   CASE_STRING(STMT_IF);
   CASE_STRING(STMT_FOR);
   CASE_STRING(STMT_ASSIGN);
+  CASE_STRING(STMT_FN_DECLARE);
   }
   return "";
 }
@@ -290,6 +331,18 @@ static void print_stmt(Stmt *stmt, u8 indent) {
       printf(SV_FMT" = ", SV_ARG(stmt->as.assign.identifier));
       print_expr(stmt->as.assign.assignment);
       printf("\n");
+      break;
+    }
+    case STMT_FN_DECLARE: {
+      printf(SV_FMT"(", SV_ARG(stmt->as.fn_declare.identifier));
+      for (u32 i = 0; i < stmt->as.fn_declare.param_count; i++) {
+        printf(SV_FMT, SV_ARG(stmt->as.fn_declare.param_identifiers[i]));
+        if (i < stmt->as.fn_declare.param_count-1) {
+          printf(", ");
+        }
+      }
+      printf(")\n");
+      break;
     }
   }
 }
