@@ -359,6 +359,7 @@ static void print_stmt(Stmt *stmt, u8 indent) {
       break;
     }
     case STMT_RETURN: {
+      printf("return ");
       print_expr(stmt->as.return_expr);
       printf("\n");
       break;
