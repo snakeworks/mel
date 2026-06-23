@@ -1,5 +1,6 @@
 #include "base.h"
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
@@ -103,6 +104,13 @@ bool sv_is_equal_to_cstr(StringView sv, const char *cstr) {
   u32 clen = strlen(cstr);
   if (sv.length != clen) return false;
   return memcmp(sv.start, cstr, clen) == 0;
+}
+
+i64 sv_to_i64(StringView sv) {
+  char cstr[sv.length + 1];
+  strncpy(cstr, sv.start, sv.length);
+  cstr[sv.length] = '\0';
+  return atol(cstr);
 }
 
 f64 sv_to_f64(StringView sv) {

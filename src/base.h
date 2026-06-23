@@ -102,6 +102,7 @@ void print_logs(LogArray *logs);
 
 bool sv_is_equal(StringView sv1, StringView sv2);
 bool sv_is_equal_to_cstr(StringView sv, const char *cstr);
+i64 sv_to_i64(StringView sv);
 f64 sv_to_f64(StringView sv);
 
 #endif

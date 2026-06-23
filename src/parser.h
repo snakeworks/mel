@@ -5,7 +5,8 @@
 #include "lexer.h"
 
 typedef enum {
-  TYPE_NUMBER,
+  TYPE_INT,
+  TYPE_FLOAT,
   TYPE_BOOLEAN,
   TYPE_STRING,
   TYPE_ARRAY,
@@ -18,7 +19,8 @@ typedef struct ExprArray ExprArray;
 typedef struct {
   Type type;
   union {
-    f64 number;
+    i64 integer;
+    f64 floating_point;
     bool boolean;
     StringView string;
     ExprArray *array;

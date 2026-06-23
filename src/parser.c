@@ -56,11 +56,19 @@ static Token expect(ParserContext *context, TokenKind token, const char *msg, ..
   return peek(context);
 }
 
-Expr *make_expr_number(ParserContext *context, f64 value) {
+Expr *make_expr_int(ParserContext *context, i64 value) {
   Expr *e = arena_push(context->arena, Expr);
   e->kind = EXPR_VALUE;
-  e->as.value.type = TYPE_NUMBER;
-  e->as.value.as.number = value;
+  e->as.value.type = TYPE_INT;
+  e->as.value.as.integer = value;
+  return e;
+}
+
+Expr *make_expr_float(ParserContext *context, f64 value) {
+  Expr *e = arena_push(context->arena, Expr);
+  e->kind = EXPR_VALUE;
+  e->as.value.type = TYPE_FLOAT;
+  e->as.value.as.floating_point = value;
   return e;
 }
 
@@ -478,8 +486,10 @@ Expr *parse_call(ParserContext *context) {
 }
 
 Expr *parse_atom(ParserContext *context) {
-  if (peek(context).kind == TOK_NUMBER) {
-    return make_expr_number(context, sv_to_f64(advance(context).lexeme));
+  if (peek(context).kind == TOK_INT_LITERAL) {
+    return make_expr_int(context, sv_to_i64(advance(context).lexeme));
+  } else if (peek(context).kind == TOK_FLOAT_LITERAL) {
+    return make_expr_float(context, sv_to_f64(advance(context).lexeme));
   } else if (
     peek(context).kind == TOK_TRUE ||
     peek(context).kind == TOK_FALSE
@@ -487,7 +497,7 @@ Expr *parse_atom(ParserContext *context) {
     bool value = peek(context).kind == TOK_TRUE;
     advance(context);
     return make_expr_boolean(context, value);
-  } else if (peek(context).kind == TOK_STRING) {
+  } else if (peek(context).kind == TOK_STRING_LITERAL) {
     return make_expr_string(context, advance(context).lexeme);
   } else if (peek(context).kind == TOK_IDENTIFIER) {
     if (peek_next(context).kind == TOK_IN) {
@@ -527,9 +537,9 @@ Expr *parse_atom(ParserContext *context) {
 
 static const char* op_string(TokenKind t) {
   switch (t) {
-    case TOK_PLUS:  return "+";
+    case TOK_PLUS: return "+";
     case TOK_MINUS: return "-";
-    case TOK_STAR:  return "*";
+    case TOK_STAR: return "*";
     case TOK_SLASH: return "/";
     case TOK_LESS: return "<";
     case TOK_LESS_EQUAL: return "<=";
@@ -545,8 +555,11 @@ static const char* op_string(TokenKind t) {
 
 void print_value(Value value) {
   switch (value.type) {
-  case TYPE_NUMBER:
-    printf("%g", value.as.number);
+  case TYPE_INT:
+    printf("%ld", value.as.integer);
+    break;
+  case TYPE_FLOAT:
+    printf("%g", value.as.floating_point);
     break;
   case TYPE_BOOLEAN:
     printf(value.as.boolean ? "true" : "false");

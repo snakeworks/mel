@@ -31,11 +31,21 @@ Value native_min(Value *args, u32 count) {
     return NULL_VALUE;
   }
 
-  if (args[0].type != TYPE_NUMBER || args[1].type != TYPE_NUMBER) {
+  bool l_num = (args[0].type == TYPE_INT || args[0].type == TYPE_FLOAT);
+  bool r_num = (args[1].type == TYPE_INT || args[1].type == TYPE_FLOAT);
+
+  if (!l_num || !r_num) {
     return NULL_VALUE;
   }
 
-  return args[0].as.number > args[1].as.number ? args[1] : args[0];
+  if (args[0].type == TYPE_INT && args[1].type == TYPE_INT) {
+    i64 a = args[0].as.integer, b = args[1].as.integer;
+    return a > b ? args[1] : args[0];
+  } else {
+    f64 a = (args[0].type == TYPE_INT) ? (f64)args[0].as.integer : args[0].as.floating_point;
+    f64 b = (args[1].type == TYPE_INT) ? (f64)args[1].as.integer : args[1].as.floating_point;
+    return a > b ? args[1] : args[0];
+  }
 }
 
 Value native_max(Value *args, u32 count) {
@@ -43,11 +53,21 @@ Value native_max(Value *args, u32 count) {
     return NULL_VALUE;
   }
 
-  if (args[0].type != TYPE_NUMBER || args[1].type != TYPE_NUMBER) {
+  bool l_num = (args[0].type == TYPE_INT || args[0].type == TYPE_FLOAT);
+  bool r_num = (args[1].type == TYPE_INT || args[1].type == TYPE_FLOAT);
+
+  if (!l_num || !r_num) {
     return NULL_VALUE;
   }
 
-  return args[0].as.number > args[1].as.number ? args[0] : args[1];
+  if (args[0].type == TYPE_INT && args[1].type == TYPE_INT) {
+    i64 a = args[0].as.integer, b = args[1].as.integer;
+    return a > b ? args[0] : args[1];
+  } else {
+    f64 a = (args[0].type == TYPE_INT) ? (f64)args[0].as.integer : args[0].as.floating_point;
+    f64 b = (args[1].type == TYPE_INT) ? (f64)args[1].as.integer : args[1].as.floating_point;
+    return a > b ? args[0] : args[1];
+  }
 }
 
 Value native_array_append(Value *args, u32 count) {
@@ -78,8 +98,8 @@ Value native_array_size(Value *args, u32 count) {
   }
 
   return (Value){
-    .type = TYPE_NUMBER,
-    .as.number = args[0].as.array->size
+    .type = TYPE_INT,
+    .as.integer = args[0].as.array->size
   };
 }
 

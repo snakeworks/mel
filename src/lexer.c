@@ -28,8 +28,13 @@ const char *token_to_str(Token token) {
     CASE_STRING(TOK_LESS);
     CASE_STRING(TOK_LESS_EQUAL);
     CASE_STRING(TOK_IDENTIFIER);
-    CASE_STRING(TOK_STRING);
-    CASE_STRING(TOK_NUMBER);
+    CASE_STRING(TOK_INT_LITERAL);
+    CASE_STRING(TOK_FLOAT_LITERAL);
+    CASE_STRING(TOK_STRING_LITERAL);
+    CASE_STRING(TOK_TYPE_BOOLEAN);
+    CASE_STRING(TOK_TYPE_INT);
+    CASE_STRING(TOK_TYPE_FLOAT);
+    CASE_STRING(TOK_TYPE_STRING);
     CASE_STRING(TOK_AND);
     CASE_STRING(TOK_OR);
     CASE_STRING(TOK_IF);
@@ -92,7 +97,11 @@ static bool kw_is_equal(const char *start, const char *kw, u32 length) {
 }
 
 TokenKind str_to_identifier_kind(const char *start, u32 length) {
-  if (kw_is_equal(start, "and", length)) return TOK_AND;
+  if (kw_is_equal(start, "int", length)) return TOK_TYPE_INT;
+  else if (kw_is_equal(start, "float", length)) return TOK_TYPE_FLOAT;
+  else if (kw_is_equal(start, "string", length)) return TOK_TYPE_STRING;
+  else if (kw_is_equal(start, "bool", length)) return TOK_TYPE_BOOLEAN;
+  else if (kw_is_equal(start, "and", length)) return TOK_AND;
   else if (kw_is_equal(start, "or", length)) return TOK_OR;
   else if (kw_is_equal(start, "if", length)) return TOK_IF;
   else if (kw_is_equal(start, "else", length)) return TOK_ELSE;
@@ -175,7 +184,7 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
       u32 start = context.current;
       if (seek(&context, '"')) {
         u32 length = context.current - start;
-        add_token(&context, TOK_STRING, &source[start], length);
+        add_token(&context, TOK_STRING_LITERAL, &source[start], length);
         advance(&context);
       }
       break;
@@ -191,7 +200,10 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
       break;
     default: {
       if (isdigit(*peek(&context))) {
-        if (prev(&context) != NULL && prev(&context)->kind == TOK_NUMBER) {
+        if (prev(&context) != NULL &&
+          (prev(&context)->kind == TOK_INT_LITERAL ||
+          prev(&context)->kind == TOK_FLOAT_LITERAL)
+        ) {
           advance(&context);
           log_err(context.errors, context.line + 1, "Unexpected number");
           return;
@@ -204,14 +216,16 @@ void lexer_begin(LexerResult *result, const char *source, Arena *arena) {
           if (isdigit(*peek_next(&context))) {
             advance(&context);
             while (isdigit(*peek(&context))) advance(&context);
+            u32 length = context.current - start;
+            add_token(&context, TOK_FLOAT_LITERAL, &source[start], length);
           } else {
             log_err(context.errors, context.line + 1, "Unexpected number with trailing dot");
             advance(&context);
           }
+        } else {
+          u32 length = context.current - start;
+          add_token(&context, TOK_INT_LITERAL, &source[start], length);
         }
-
-        u32 length = context.current - start;
-        add_token(&context, TOK_NUMBER, &source[start], length);
 
         break;
       } else if (is_possible_identifier(*peek(&context))) {

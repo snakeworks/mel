@@ -1,5 +1,6 @@
 #include "interpreter.h"
 #include "base.h"
+#include "lexer.h"
 #include "native.h"
 #include "parser.h"
 #include <assert.h>
@@ -7,10 +8,17 @@
 
 #define MAX_ARGS 32
 
-static Value make_value_number(f64 value) {
+static Value make_value_int(i64 value) {
   Value v;
-  v.type = TYPE_NUMBER;
-  v.as.number = value;
+  v.type = TYPE_INT;
+  v.as.integer = value;
+  return v;
+}
+
+static Value make_value_float(f64 value) {
+  Value v;
+  v.type = TYPE_FLOAT;
+  v.as.floating_point = value;
   return v;
 }
 
@@ -109,18 +117,19 @@ static Stmt *find_fn(StmtArray *stmts, StringView identifier) {
 static Value eval_expr(InterpreterContext *context, Expr *expr);
 static bool is_truthy(Value value);
 
-static Value eval_value_subscript(InterpreterContext *context, Value value, u64 index) {
+static Value eval_value_subscript(InterpreterContext *context, Value value, i64 index) {
   switch (value.type) {
   case TYPE_ARRAY:
     if (index < value.as.array->size) {
       return eval_expr(context, value.as.array->items[index]);
     }
     return NULL_VALUE;
-  case TYPE_NUMBER:
-    if (index < value.as.number) {
-      return make_value_number(index);
+  case TYPE_INT:
+    if (index < value.as.integer) {
+      return make_value_int(index);
     }
     return NULL_VALUE;
+  case TYPE_FLOAT:
   case TYPE_BOOLEAN:
   case TYPE_STRING:
   case TYPE_NULL:
@@ -129,7 +138,8 @@ static Value eval_value_subscript(InterpreterContext *context, Value value, u64 
   return NULL_VALUE;
 }
 
-static Value eval_expr_subscript(InterpreterContext *context, Expr *expr, u64 index) {
+// TODO: Index is signed because in the future we may have `array[-1]` to get elements starting from the end
+static Value eval_expr_subscript(InterpreterContext *context, Expr *expr, i64 index) {
   switch (expr->kind) {
   case EXPR_VALUE: return eval_value_subscript(context, expr->as.value, index);
   case EXPR_IDENTIFIER: {
@@ -169,7 +179,8 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
   case EXPR_UNARY: {
     Value v = eval_expr(context, expr->as.unary.right);
     if (expr->as.unary.op == TOK_MINUS) {
-      return make_value_number(-v.as.number);
+      if (v.type == TYPE_INT) return make_value_int(-v.as.integer);
+      else if (v.type == TYPE_FLOAT) return make_value_float(-v.as.floating_point);
     }
     return v;
   }
@@ -177,26 +188,53 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
     Value l = eval_expr(context, expr->as.binary.left);
     Value r = eval_expr(context, expr->as.binary.right);
 
+    switch (expr->as.binary.op) {
+    case TOK_OR:  return make_value_boolean(is_truthy(l) || is_truthy(r));
+    case TOK_AND: return make_value_boolean(is_truthy(l) && is_truthy(r));
+    default: break;
+    }
+
+    bool l_num = (l.type == TYPE_INT || l.type == TYPE_FLOAT);
+    bool r_num = (r.type == TYPE_INT || r.type == TYPE_FLOAT);
+
+    if (l_num && r_num) {
+      if (l.type == TYPE_INT && r.type == TYPE_INT) {
+        i64 a = l.as.integer, b = r.as.integer;
+        switch (expr->as.binary.op) {
+        case TOK_PLUS: return make_value_int(a + b);
+        case TOK_MINUS: return make_value_int(a - b);
+        case TOK_STAR: return make_value_int(a * b);
+        case TOK_SLASH: return make_value_int(a / b);  // TODO: divide by zero
+        case TOK_LESS: return make_value_boolean(a <  b);
+        case TOK_LESS_EQUAL: return make_value_boolean(a <= b);
+        case TOK_GREATER: return make_value_boolean(a >  b);
+        case TOK_GREATER_EQUAL: return make_value_boolean(a >= b);
+        case TOK_DOUBLE_EQUAL: return make_value_boolean(a == b);
+        case TOK_BANG_EQUAL: return make_value_boolean(a != b);
+        default: return NULL_VALUE; // TODO: runtime error
+        }
+      } else {
+        f64 a = (l.type == TYPE_INT) ? (f64)l.as.integer : l.as.floating_point;
+        f64 b = (r.type == TYPE_INT) ? (f64)r.as.integer : r.as.floating_point;
+        switch (expr->as.binary.op) {
+        case TOK_PLUS: return make_value_float(a + b);
+        case TOK_MINUS: return make_value_float(a - b);
+        case TOK_STAR: return make_value_float(a * b);
+        case TOK_SLASH: return make_value_float(a / b);
+        case TOK_LESS: return make_value_boolean(a <  b);
+        case TOK_LESS_EQUAL: return make_value_boolean(a <= b);
+        case TOK_GREATER: return make_value_boolean(a >  b);
+        case TOK_GREATER_EQUAL: return make_value_boolean(a >= b);
+        case TOK_DOUBLE_EQUAL: return make_value_boolean(a == b);
+        case TOK_BANG_EQUAL: return make_value_boolean(a != b);
+        default: return NULL_VALUE;
+        }
+      }
+    }
+
     assert(l.type == r.type); // TODO: Will cause problems later
 
     switch (l.type) {
-    case TYPE_NUMBER: {
-      switch (expr->as.binary.op) {
-      case TOK_PLUS: return make_value_number(l.as.number + r.as.number);
-      case TOK_MINUS: return make_value_number(l.as.number - r.as.number);
-      case TOK_STAR: return make_value_number(l.as.number * r.as.number);
-      case TOK_SLASH: return make_value_number(l.as.number / r.as.number);
-      case TOK_LESS: return make_value_boolean(l.as.number < r.as.number);
-      case TOK_LESS_EQUAL: return make_value_boolean(l.as.number <= r.as.number);
-      case TOK_DOUBLE_EQUAL: return make_value_boolean(l.as.number == r.as.number);
-      case TOK_BANG_EQUAL: return make_value_boolean(l.as.number != r.as.number);
-      case TOK_GREATER: return make_value_boolean(l.as.number > r.as.number);
-      case TOK_GREATER_EQUAL: return make_value_boolean(l.as.number >= r.as.number);
-      case TOK_OR: return make_value_boolean(is_truthy(l) || is_truthy(r));
-      case TOK_AND: return make_value_boolean(is_truthy(l) && is_truthy(r));
-      default: return make_value_number(0.0);
-      }
-    }
     case TYPE_BOOLEAN:
       switch (expr->as.binary.op) {
       case TOK_LESS: return make_value_boolean(l.as.boolean < r.as.boolean);
@@ -219,11 +257,9 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
       default: return NULL_VALUE;
       }
       break;
-    case TYPE_ARRAY: {
-      break;
-    }
-    case TYPE_NULL:
-      // TODO: Implement
+    case TYPE_ARRAY: // TODO: Implement
+    case TYPE_NULL: // TODO: Implement
+    default:
       break;
     }
     break;
@@ -292,8 +328,10 @@ static Value eval_expr(InterpreterContext *context, Expr *expr) {
 
 static bool is_truthy(Value value) {
   switch (value.type) {
-  case TYPE_NUMBER:
-    return value.as.number > 0.0;
+  case TYPE_INT:
+    return value.as.integer > 0;
+  case TYPE_FLOAT:
+    return value.as.floating_point > 0.0;
   case TYPE_BOOLEAN:
     return value.as.boolean;
   case TYPE_STRING:
