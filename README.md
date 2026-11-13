@@ -26,7 +26,7 @@ See the [`examples/`](examples/) directory for sample programs.
 
 Mel uses a simple, C-like syntax: statements end in `;`, curly braces `{}` group blocks, and variables can be assigned with `=`. It supports expressions, conditionals, loops and functions.
 
-```c
+```rs
 message = "Hello, world!";
 println(message);
 
